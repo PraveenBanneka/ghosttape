@@ -109,3 +109,17 @@
 - Known limitation (needs Praveen's OK to fix, packet format): unsigned HELLO + no boot nonce allows a replay
   "restart" by someone holding recorded signed lines; 32-bit MAC. Documented in docs/RELAY_PROTOCOL.md 3.5.
 - Main session added web/src/entropy/relay.ts (viewer + USB bridge client).
+
+## 2026-10-05 — Phase F: "Why patterns appear in pure noise" page (parallel agent) + online client
+- `web/learn.html` + `web/src/learn/` (analysis.ts pure maths via the shared engine/Account, own canvas drawing):
+  1 coin-flip candles, 2 spot-the-pattern (reveal + 300-chart pattern-finder rates), 3 trendlines always fit
+  (~91-94% of charts have a 3-touch line), 4 strategy lie detector (EMA 20/50 or breakout on 1,000 fresh sessions vs a
+  coin-flip trader; verdict computed, not hard-coded), 5 why hardware noise. Phone: no page h-scroll.
+  18 tests; web suite 53/53; tsc clean; vite builds both pages.
+- **Key finding by the agent:** under the old prototype clock (k = 1) trend rules BEAT the coin (EMA ~61%, breakout
+  ~64-67% of sessions, t = 5-12) because of regime drift + every session starting in expansion. Under the GJ clock
+  (k = 1.4M) the edge is gone (EMA 50% vs coin 47% of sessions, |t| < 3). A pinned test fails on purpose if the clock
+  is ever lowered enough to make the tape beatable again. So the GJ choice also keeps the project's claim honest.
+- Online client in the terminal: "Watch online" (RelayViewer: snapshot + per-packet shared-engine replay, own
+  400 ms watchdog, drift check against the relay tick) and "Share ESP32 online" (RelayBridge forwards raw serial
+  lines verbatim; SerialSource.onLine tap). Serial packets never step the local engine while in online mode.

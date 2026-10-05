@@ -9,6 +9,7 @@ import { REGIMES } from './model/regime';
 import type { Packet } from './model/random';
 import { cryptoPacket, DemoSource, PACKET_MS } from './entropy/demo';
 import { SerialSource, webSerialSupported } from './entropy/serial';
+import { RelayBridge, RelayViewer, type RelayStatus } from './entropy/relay';
 import type { EntropySource, FeedState, SourceEvents } from './entropy/source';
 import { TapeChart } from './chart/chart';
 import { DEFAULT_INDICATORS, INDICATOR_CHOICES } from './chart/indicators';
@@ -25,7 +26,7 @@ const PREFS_KEY = 'gt.prefs.v1';
 const DEMO_HISTORY_MIN = 360;  // instant labelled demo history (6 h) so every timeframe has bars in demo mode
 const MAX_BARS = 1500;
 
-type Mode = 'demo' | 'esp32';
+type Mode = 'demo' | 'esp32' | 'online';
 interface SavedSession {
   mode: Mode;
   savedAt: number;
@@ -50,6 +51,8 @@ let startPrice = engine.price;
 let feedState: FeedState = 'demo';
 let source: EntropySource | null = null;
 let serialSrc: SerialSource | null = null;
+let viewer: RelayViewer | null = null;
+let bridge: RelayBridge | null = null;
 let radio = 'not reported yet';
 let packets = 0;
 let rateWindow: number[] = [];
@@ -60,6 +63,7 @@ const linked = new Map<number, { lines: string[]; box?: string }>();
 const tape = new TapeChart($('chart'), tf => series.series[tf].bars, prefs.tf);
 const mid = (): number => engine.price;
 const tapeLive = (): boolean => mode === 'demo' || feedState === 'live';
+const modeLabel = (): string => ({ demo: 'demo', esp32: 'ESP32', online: 'online relay' })[mode];
 
 // ---------------------------------------------------------------- journal helpers
 const log = (kind: Parameters<Account['log']>[1], text: string): void => { account.log(Date.now(), kind, text); scheduleRender(true); };
@@ -77,7 +81,7 @@ function applyTick(t: Tick, live: boolean): void {
   const updates = series.add(t);
   if (live) for (const tf of TIMEFRAMES) tape.push(tf.id, updates[tf.id].bar);
   if (t.shift) {
-    const src = mode === 'esp32' ? 'ESP32' : 'demo';
+    const src = mode === 'demo' ? 'demo' : 'ESP32';
     account.log(t.time, 'regime', `⚡ regime shift ${t.shift.from} → ${t.shift.to} (rate ${t.shift.rate.toFixed(1)}%, ${src} roll)`);
   }
   const closed = account.onPrice(t.price, t.time);
@@ -144,7 +148,7 @@ function newSession(newMode: Mode): void {
     for (let i = 0; i < n; i++) applyTick(engine.step(cryptoPacket(), t0 + i * PACKET_MS), false);
     startPrice = series.series['5m'].bars[0]?.open ?? 100;
     account.log(Date.now(), 'entropy', `New DEMO session: ${DEMO_HISTORY_MIN} min of instant history from browser entropy (not hardware)`);
-  } else {
+  } else if (newMode === 'esp32') {
     account.log(Date.now(), 'entropy', 'New ESP32 session: every candle from here comes from the chip\'s radio-verified hardware noise');
   }
   tape.reload();
@@ -170,12 +174,12 @@ function restoreSession(s: SavedSession): void {
   tape.reload();
   for (const p of account.positions) drawPositionLines(p.ticket);
   for (const d of s.drawings) tape.chart.createOverlay({ name: d.name, points: d.points, extendData: d.extendData });
-  account.log(Date.now(), 'info', `Session restored (${s.mode === 'esp32' ? 'ESP32' : 'demo'}), resuming from ${pf(engine.price)}`);
+  account.log(Date.now(), 'info', `Session restored (${modeLabel()}), resuming from ${pf(engine.price)}`);
 }
 
 // ---------------------------------------------------------------- entropy sources
 const events: SourceEvents = {
-  packet: onPacket,
+  packet: p => { if (mode !== 'online') onPacket(p); },
   state: (s, msg) => {
     const was = feedState;
     feedState = s;
@@ -193,9 +197,18 @@ const events: SourceEvents = {
   },
 };
 
+function stopOnline(): void {
+  viewer?.stop();
+  viewer = null;
+  bridge?.stop();
+  bridge = null;
+}
+
 async function useDemo(): Promise<void> {
+  stopOnline();
   source?.stop();
   serialSrc = null;
+  $('btnBridge').hidden = true;
   source = new DemoSource(events);
   newSession('demo');
   await source.start();
@@ -213,11 +226,75 @@ async function connectEsp32(): Promise<void> {
     renderFeed(feedState, `Could not open the ESP32: ${(e as Error).message}. Pick the board's COM port and close any serial monitor holding it.`);
     return;
   }
+  stopOnline();
   source?.stop();
   source = serialSrc = next;
+  $('btnBridge').hidden = false;
   const saved = storage.get<SavedSession>(SESSION_KEY);
   if (mode === 'esp32' && saved?.mode === 'esp32') log('entropy', 'ESP32 reconnected to the existing ESP32 session');
   else newSession('esp32');
+}
+
+// ---------------------------------------------------------------- online relay (viewer + USB bridge)
+function relayFeed(s: RelayStatus): void {
+  const live = s.online_enabled && s.uplink === 'up' && !s.frozen;
+  feedState = live ? 'live' : 'offline';
+  renderFeed(feedState, live ? '' : `Online relay: ${s.message}${s.online_enabled ? '' : ' (the owner switches it on in limits.jsonc)'}.`);
+  scheduleRender();
+}
+
+/** Watch the shared online tape. keepSerial = this browser is also the USB bridge. */
+function useOnline(keepSerial = false): void {
+  viewer?.stop();
+  viewer = null;
+  if (!keepSerial) { bridge?.stop(); bridge = null; source?.stop(); source = null; serialSrc = null; $('btnBridge').hidden = true; }
+  else if (source && source !== serialSrc) source.stop();
+  resetState('online');
+  tape.reload();
+  feedState = 'waiting';
+  renderFeed('waiting', 'Connecting to the online relay…');
+  viewer = new RelayViewer({
+    snapshot: s => {
+      resetState('online');
+      engine = TapeEngine.from(s.engine);
+      for (const tf of TIMEFRAMES) series.series[tf.id].bars.push(...(s.candles[tf.id] ?? []));
+      startPrice = series.series['5m'].bars[0]?.open ?? engine.price;
+      tape.reload();
+      account.log(Date.now(), 'entropy', `Joined the online relay tape at ${pf(engine.price)} (shared by every viewer)`);
+      relayFeed(s.status);
+      scheduleRender(true);
+    },
+    packet: (p, time, relayTick) => {
+      const t = engine.step(p, time);
+      if (Math.abs(t.price - relayTick.price) > 1e-9) log('entropy-bad', 'this viewer drifted from the relay tape');
+      packets++;
+      rateWindow.push(performance.now());
+      pushRaw(p);
+      if (feedState !== 'live') { feedState = 'live'; renderFeed('live', ''); }
+      applyTick(t, true);
+    },
+    status: relayFeed,
+    info: (text, bad) => {
+      if (bad && text.includes('frozen')) { feedState = 'offline'; renderFeed('offline', `Online relay: ${text}.`); }
+      log(bad ? 'entropy-bad' : 'entropy', text);
+    },
+    closed: reason => { feedState = 'offline'; renderFeed('offline', `Online relay closed: ${reason}.`); scheduleRender(); },
+  });
+  viewer.start();
+}
+
+/** This browser forwards its USB ESP32's signed lines to the relay and then watches the shared tape. */
+function shareOnline(): void {
+  if (!serialSrc) return;
+  bridge?.stop();
+  const b = new RelayBridge((text, bad, fatal) => {
+    log(bad ? 'entropy-bad' : 'entropy', text);
+    if (fatal && serialSrc) serialSrc.onLine = null;
+  });
+  bridge = b;
+  serialSrc.onLine = line => b.forward(line);
+  b.start();
+  useOnline(true);
 }
 
 // ---------------------------------------------------------------- orders from the ticket
@@ -450,6 +527,8 @@ for (const name of prefs.indicators) tape.setIndicator(name, true);
 
 $('btnConnect').onclick = () => void connectEsp32();
 $('btnDemo').onclick = () => void useDemo();
+$('btnOnline').onclick = () => useOnline();
+$('btnBridge').onclick = () => shareOnline();
 $('rate').oninput = e => {
   const v = Number((e.target as HTMLInputElement).value);
   engine.rate = v;

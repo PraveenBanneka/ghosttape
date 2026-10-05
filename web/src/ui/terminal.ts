@@ -118,7 +118,7 @@ export function pushRaw(p: Packet): void {
 export function clearRaw(): void { rawRows.length = 0; }
 
 export interface ProofInfo {
-  source: 'demo' | 'esp32';
+  source: 'demo' | 'esp32' | 'online';
   packets: number;
   gaps: number;
   restarts: number;
@@ -137,10 +137,12 @@ export function renderProof(i: ProofInfo): void {
   if ($('proof').hidden) return;
   $('rawfeed').innerHTML = rawRows.join('') || '<div class="muted">Waiting for the first packet…</div>';
   const rows: [string, string][] = [
-    ['Source', i.source === 'esp32' ? 'ESP32 esp_random() over USB serial. True random only while its radio is on (Espressif); the firmware verifies the radio and withholds numbers otherwise.' : 'Browser crypto.getRandomValues() (DEMO, not hardware).'],
-    ['Radio', i.source === 'esp32' ? i.radio : 'n/a in demo'],
+    ['Source', i.source === 'esp32' ? 'ESP32 esp_random() over USB serial. True random only while its radio is on (Espressif); the firmware verifies the radio and withholds numbers otherwise.'
+      : i.source === 'online' ? 'ESP32 packets signed on the chip (HMAC), verified by the Cloudflare relay and broadcast unchanged to every viewer; nothing is queued.'
+      : 'Browser crypto.getRandomValues() (DEMO, not hardware).'],
+    ['Radio', i.source === 'demo' ? 'n/a in demo' : i.radio],
     ['Packets used', `${i.packets.toLocaleString('en-US')} (each exactly once)`],
-    ['Gaps / restarts', i.source === 'esp32' ? `${i.gaps} lost · ${i.restarts} restarts` : 'n/a'],
+    ['Gaps / restarts', i.source === 'esp32' ? `${i.gaps} lost · ${i.restarts} restarts` : i.source === 'online' ? 'tracked by the relay (/api/state)' : 'n/a'],
     ['Rate', `${i.rate.toFixed(2)} packets/s${i.lastAgoMs === null ? '' : ` · last ${i.lastAgoMs > 9999 ? '>10 s' : `${i.lastAgoMs} ms`} ago`}`],
     ['Mapping', 'u₁=(a+1)/(2³²+1), u₂=b/2³², z=√(−2 ln u₁)·cos(2πu₂)'],
     ['Price step', `price ← price·exp((μ−σ²/2)+σz), μ=${i.mu.toFixed(4)}, σ=${i.sigma.toFixed(3)} (${i.regime})`],

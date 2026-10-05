@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Patterns in Noise · GhostTape</title>
+  <meta name="description" content="Why traders see trendlines, double tops and winning strategies in pure random noise, explained with live demos on the GhostTape synthetic tape." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html" aria-label="GhostTape terminal"><span class="logo-dot" aria-hidden="true"></span><span class="brand-name">GhostTape</span></a>
+    <span class="badge-synthetic" title="Every price on this page comes from random numbers. Nothing here is a real market.">Synthetic tape, not real market data</span>
+    <span class="spacer"></span>
+    <a class="back" href="index.html">← <span class="long">Back to the </span>terminal</a>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <p class="eyebrow">GhostTape · learn</p>
+      <h1>Why patterns appear in pure noise</h1>
+      <p class="lead">
+        GHOST/USD is made of random numbers. Yet after a minute of watching, most people see trends, double tops and
+        lines the price "respects". This page shows why, with small experiments you can run yourself.
+      </p>
+      <div class="source-bar" role="group" aria-labelledby="srcTitle">
+        <span id="srcTitle" class="src-title">Randomness for these demos</span>
+        <label class="radio"><input type="radio" name="src" value="browser" checked /> Your browser</label>
+        <label class="radio"><input type="radio" name="src" value="seed" /> Fixed seed</label>
+        <input id="seed" class="seed mono" type="number" inputmode="numeric" min="0" max="4294967295" step="1" value="42" aria-label="Seed number" />
+        <button type="button" id="applySeed" class="btn ghost small">Replay</button>
+        <p class="src-note">
+          These demos use your browser's randomness (<span class="mono">crypto.getRandomValues</span>); the live tape uses the ESP32.
+          A fixed seed replays the exact same charts, so you can share an example.
+        </p>
+      </div>
+    </section>
+
+    <!-- 1 -->
+    <section class="card" id="s1" aria-labelledby="h1t">
+      <h2 id="h1t"><span class="num">1</span>Every candle is a coin flip</h2>
+      <div class="copy">
+        <p>Each price step is one packet of three random numbers. Two of them become a bell-curve draw: usually a small move, sometimes a big one, up or down with equal odds. About six steps make one 1-second candle.</p>
+        <p>There is one twist. The tape has two hidden moods: <b>expansion</b> (calm) and <b>recession</b> (about twice as jumpy). Every 8 steps the third number decides if the mood flips. Each mood also has a built-in drift, but it is far too small to see on a chart like this. Nobody picks the direction, not even us.</p>
+      </div>
+      <div class="controls">
+        <button type="button" class="btn primary" id="s1New">New session</button>
+        <label class="check"><input type="checkbox" id="s1Shade" /> Show the hidden mood</label>
+      </div>
+      <div class="chart-box"><canvas id="s1Chart" class="chart" height="300" role="img" aria-label="Candlestick chart of one random session"></canvas></div>
+      <p class="legend" id="s1Legend" hidden><span class="li"><span class="sw shade"></span> recession (jumpy)</span><span class="li">unshaded = expansion (calm)</span></p>
+      <p class="stats mono" id="s1Stats"></p>
+      <details class="packets">
+        <summary>How the first steps were made</summary>
+        <div class="table-scroll">
+          <table class="ptable mono" id="s1Packets">
+            <thead><tr><th>step</th><th>random words a · b</th><th>bell-curve draw z</th><th>price</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    <!-- 2 -->
+    <section class="card" id="s2" aria-labelledby="h2t">
+      <h2 id="h2t"><span class="num">2</span>Spot the pattern</h2>
+      <div class="copy">
+        <p>Here are six charts. Tag the ones that look like an <b>uptrend</b> or a <b>double top</b> (two peaks at about the same height, a classic "sell" picture). Then press Reveal.</p>
+      </div>
+      <div class="grid6" id="s2Grid"></div>
+      <div class="controls">
+        <button type="button" class="btn primary" id="s2Reveal">Reveal</button>
+        <button type="button" class="btn ghost" id="s2New">New set</button>
+      </div>
+      <div class="reveal" id="s2Result" role="status" hidden></div>
+    </section>
+
+    <!-- 3 -->
+    <section class="card" id="s3" aria-labelledby="h3t">
+      <h2 id="h3t"><span class="num">3</span>Trendlines always fit</h2>
+      <div class="copy">
+        <p>A computer drew the "best" support line (under the price) and resistance line (over it) on the first part of this random chart, the way a chartist would: through swing points, never cut by a close.</p>
+        <p>Join two of the many little swing points and a third one often lands near the line. It feels like proof. It is just what wiggly lines do. After the dashed divider you can see what the price did next.</p>
+      </div>
+      <div class="controls">
+        <button type="button" class="btn primary" id="s3New">New chart</button>
+        <button type="button" class="btn ghost" id="s3Many">Try 200 charts</button>
+      </div>
+      <div class="chart-box"><canvas id="s3Chart" class="chart" height="300" role="img" aria-label="Random chart with fitted support and resistance lines"></canvas></div>
+      <p class="legend"><span class="li"><span class="sw line-up"></span> support</span><span class="li"><span class="sw line-down"></span> resistance</span><span class="li"><span class="sw divider"></span> lines drawn using only candles left of here</span></p>
+      <div class="tiles" id="s3Tiles"></div>
+      <p class="note" id="s3Many_out" role="status"></p>
+    </section>
+
+    <!-- 4 -->
+    <section class="card" id="s4" aria-labelledby="h4t">
+      <h2 id="h4t"><span class="num">4</span>The strategy lie detector</h2>
+      <div class="copy">
+        <p>A backtest is "what would this rule have earned on past prices". One good backtest feels convincing. So let's run a rule on 1,000 fresh random sessions, through the same demo-account maths as the terminal (1 lot per trade on the $10,000 demo account, spread 0 as configured).</p>
+        <p>To keep it honest we also run a <b>coin-flip trader</b>: it trades at exactly the same moments, but picks buy or sell by tossing a coin. A rule only has skill if it beats the coin.</p>
+      </div>
+      <div class="controls" role="group" aria-label="Strategy">
+        <label class="radio"><input type="radio" name="strat" value="ema" checked /> EMA 20/50 crossover</label>
+        <label class="radio"><input type="radio" name="strat" value="breakout" /> 20-candle breakout</label>
+      </div>
+      <p class="rule" id="s4Rule"></p>
+      <div class="controls">
+        <button type="button" class="btn primary" id="s4Run">Run 1,000 sessions</button>
+        <div class="progress" id="s4Progress" hidden><div class="bar" id="s4Bar"></div></div>
+        <span class="mono small dim" id="s4Count"></span>
+      </div>
+      <div id="s4Out" hidden>
+        <div class="tiles" id="s4Tiles"></div>
+        <h3>Profit or loss per session (US dollars)</h3>
+        <div class="chart-box"><canvas id="s4Hist" class="chart" height="220" role="img" aria-label="Histogram of session returns, rule versus coin"></canvas></div>
+        <p class="legend"><span class="li"><span class="sw bar-rule"></span> the rule</span><span class="li"><span class="sw bar-coin"></span> coin-flip trader</span><span class="li"><span class="sw zero"></span> break-even</span><span class="li">the most extreme 1% at each end is off the chart</span></p>
+        <div class="verdict" id="s4Verdict"></div>
+        <h3>The lucky one</h3>
+        <p class="copy-inline" id="s4LuckyText"></p>
+        <div class="chart-box"><canvas id="s4Lucky" class="chart" height="240" role="img" aria-label="The best session out of 1,000"></canvas></div>
+        <div class="chart-box"><canvas id="s4Equity" class="chart" height="110" role="img" aria-label="Account equity during the best session"></canvas></div>
+        <p class="legend"><span class="li"><span class="sw line-accent"></span> account equity during that session</span></p>
+      </div>
+      <div class="copy">
+        <p><b>The lesson:</b> a great backtest on one chart proves nothing. Out of 1,000 random charts, one will always look like genius. The only fair test is many fresh charts, against a no-skill baseline, with real costs.</p>
+      </div>
+    </section>
+
+    <!-- 5 -->
+    <section class="card" id="s5" aria-labelledby="h5t">
+      <h2 id="h5t"><span class="num">5</span>Why GhostTape uses hardware noise</h2>
+      <div class="copy">
+        <p>A software random generator is a formula. Feed it the same starting number (the "seed") and it replays exactly the same numbers. That is handy for repeatable examples like the fixed seed above, but it means someone could know the next move.</p>
+        <p>The live tape uses the random-number hardware in an ESP32 chip, fed by radio and thermal noise. Espressif, the chip maker, says these numbers are truly random only while the chip's Wi-Fi or Bluetooth radio is on. So our firmware switches the radio on, proves it is running with a Wi-Fi scan, re-checks every 30 seconds, and sends no numbers at all if the check fails.</p>
+        <p>An honest footnote: statistical tests can only show "no pattern we could detect". The "truly random" claim rests on the physical source.</p>
+      </div>
+      <div class="controls">
+        <button type="button" class="btn primary" id="s5Again">Generate again</button>
+      </div>
+      <div class="replay">
+        <div class="rcol">
+          <h3>Software, seed <span class="mono" id="s5Seed">42</span></h3>
+          <ol class="mono words" id="s5Soft"></ol>
+          <p class="note">Same every time.</p>
+        </div>
+        <div class="rcol">
+          <h3>Browser randomness</h3>
+          <ol class="mono words" id="s5Crypto"></ol>
+          <p class="note">Different every time. (The ESP32 behaves like this too, but from physics.)</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p><b>Demo only.</b> No real money and no real broker. Not financial advice and not a trading signal.
+      GHOST/USD is a synthetic instrument: its prices are random numbers, not market data.</p>
+    <p><a href="index.html">← Back to the GhostTape terminal</a></p>
+  </footer>
+
+  <script type="module" src="/src/learn/main.ts"></script>
+</body>
+</html>

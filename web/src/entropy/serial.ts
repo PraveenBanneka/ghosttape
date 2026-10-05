@@ -25,6 +25,8 @@ export const webSerialSupported = (): boolean => !!serial();
 export class SerialSource implements EntropySource {
   readonly kind = 'esp32' as const;
   readonly seq = new SeqTracker();
+  /** optional tap on every raw serial line (used by the online USB bridge to forward lines verbatim) */
+  onLine: ((raw: string) => void) | null = null;
   lastPacketAt = 0;
   live = false;
   private port: SerialPortLike | null = null;
@@ -116,6 +118,7 @@ export class SerialSource implements EntropySource {
   }
 
   private handle(raw: string): void {
+    this.onLine?.(raw);
     const l = parseLine(raw);
     switch (l.kind) {
       case 'hello':
