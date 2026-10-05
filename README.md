@@ -21,8 +21,8 @@ nothing, because there is nothing underneath it but physics.
 | Phase | What | Status |
 |---|---|---|
 | 0 | Safe project setup (guard hooks, leak scanner, owner-only limits) | ✅ done |
-| 1 | ESP32 firmware streaming hardware random packets over USB | ⏳ next |
-| A | Price engine + MT5 account maths, unit-tested | planned |
+| 1 | ESP32 firmware streaming hardware random packets over USB | ✅ done (1,000 packets, 0 gaps) |
+| A | Price engine + MT5 account maths, unit-tested | ⏳ next |
 | B | TradingView-style terminal (light theme, drawing tools, position boxes, indicators) | planned |
 | C | Live ESP32 mode in the browser (Web Serial), freezes when unplugged | planned |
 | D | Randomness proof notebook (Google Colab) | planned |
