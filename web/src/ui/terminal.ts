@@ -35,15 +35,12 @@ export function renderFeed(state: FeedState, message?: string): void {
   if (message !== undefined) $('sourceMsg').textContent = message;
 }
 
-export function renderQuote(price: number, ref: number, regime: 'expansion' | 'recession'): void {
+export function renderQuote(price: number, ref: number): void {
   $('price').textContent = px(price);
   const pct = ((price - ref) / ref) * 100;
   const chg = $('change');
   chg.textContent = `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`;
   chg.className = `chg mono ${pct >= 0 ? 'up' : 'down'}`;
-  const r = $('regime');
-  r.textContent = regime === 'expansion' ? 'Expansion' : 'Recession';
-  r.className = `regime ${regime}`;
 }
 
 export function renderAccount(a: Account, s: Snapshot, stopOut: number): void {
@@ -125,10 +122,8 @@ export interface ProofInfo {
   rate: number;
   lastAgoMs: number | null;
   radio: string;
-  regime: string;
   mu: number;
   sigma: number;
-  switchProb: number;
   barTicks: number;
   tf: string;
 }
@@ -145,8 +140,8 @@ export function renderProof(i: ProofInfo): void {
     ['Gaps / restarts', i.source === 'esp32' ? `${i.gaps} lost · ${i.restarts} restarts` : i.source === 'online' ? 'tracked by the relay (/api/state)' : 'n/a'],
     ['Rate', `${i.rate.toFixed(2)} packets/s${i.lastAgoMs === null ? '' : ` · last ${i.lastAgoMs > 9999 ? '>10 s' : `${i.lastAgoMs} ms`} ago`}`],
     ['Mapping', 'u₁=(a+1)/(2³²+1), u₂=b/2³², z=√(−2 ln u₁)·cos(2πu₂)'],
-    ['Price step', `price ← price·exp((μ−σ²/2)+σz), μ=${i.mu.toFixed(4)}, σ=${i.sigma.toFixed(3)} (${i.regime})`],
-    ['Regime roll', `every 8th packet with uc=(c+1)/(2³²+1); flips if uc < ${i.switchProb.toFixed(3)}`],
+    ['Price step', `price ← price·exp(−σ²/2+σz), no drift, σ=${i.sigma.toExponential(3)} per step (GBP/JPY-like clock)`],
+    ['Third word c', 'not used (no regimes or rates); never reused for anything else'],
     ['Current bar', `${i.barTicks} packets in this ${i.tf} candle`],
   ];
   $('proofInfo').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');

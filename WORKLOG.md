@@ -150,3 +150,12 @@
   Verified live: home 200, /learn 200 (/learn.html 307 -> /learn), /api/state online_enabled=false "online mode is off",
   demo tape running in headless Chrome. No DEVICE_SECRET set yet (only needed when online mode is switched on).
   Reversal: `npx wrangler rollback <previous-version-id>` (first version: redeploy a fixed build).
+
+## 2026-10-05 — No regimes/rates; TRNG switch; redeploys
+- Regimes removed by default (Praveen: "No rates or macro economic simulation wanted for now"): driftless GBM,
+  sigma 0.014164 (old mix's long-run vol) before the k = 1.4M clock; c word unused; prototype model kept behind
+  `regimeSwitching: true`. Regime badge, proof rows and the learn page's "hidden moods" text/shading removed.
+  Tests 55/55 (new: default has no shifts/drift, c does not affect the path). Deployed 6ea1c553.
+- TRNG switch (Praveen: "a simple switch there to turn trng on"): replaces Connect ESP32 / Demo entropy.
+  OFF = browser randomness (demo); ON = ESP32 over Web Serial (port picker; cancel flips it back off); browsers
+  without Web Serial use the online relay. Deployed **630b926e-8056-4dba-82ae-6251311c5a88**; live HTML has the switch.

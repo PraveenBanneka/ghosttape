@@ -43,14 +43,12 @@
       <h2 id="h1t"><span class="num">1</span>Every candle is a coin flip</h2>
       <div class="copy">
         <p>Each price step is one packet of three random numbers. Two of them become a bell-curve draw: usually a small move, sometimes a big one, up or down with equal odds. About six steps make one 1-second candle.</p>
-        <p>There is one twist. The tape has two hidden moods: <b>expansion</b> (calm) and <b>recession</b> (about twice as jumpy). Every 8 steps the third number decides if the mood flips. Each mood also has a built-in drift, but it is far too small to see on a chart like this. Nobody picks the direction, not even us.</p>
+        <p>There are no hidden moods, trends or interest rates in this tape: every step is the same fair draw, with no drift. Nobody picks the direction, not even us.</p>
       </div>
       <div class="controls">
         <button type="button" class="btn primary" id="s1New">New session</button>
-        <label class="check"><input type="checkbox" id="s1Shade" /> Show the hidden mood</label>
       </div>
       <div class="chart-box"><canvas id="s1Chart" class="chart" height="300" role="img" aria-label="Candlestick chart of one random session"></canvas></div>
-      <p class="legend" id="s1Legend" hidden><span class="li"><span class="sw shade"></span> recession (jumpy)</span><span class="li">unshaded = expansion (calm)</span></p>
       <p class="stats mono" id="s1Stats"></p>
       <details class="packets">
         <summary>How the first steps were made</summary>

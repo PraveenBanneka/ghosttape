@@ -1,5 +1,8 @@
-// The tape: one packet = one GBM sub-step; the regime is rolled with the packet's third word on every
-// 8th packet (SPEC steps 3 + 5; addendum item 3 keeps this rhythm while candles become clock buckets).
+// The tape: one packet = one GBM sub-step.
+// Praveen 2026-10-05: "No rates or macro economic simulation wanted for now" -> by default there are no
+// expansion/recession regimes and no rate: one driftless GBM (mu = 0) whose volatility equals the old regime mix.
+// The packet's third word (c) is then unused (never reused elsewhere). The prototype's regime model is kept behind
+// `regimeSwitching: true` (SPEC steps 3 + 5) for tests and a possible later return.
 
 import { gaussian, uc, type Packet } from './random';
 import { REGIMES, rollRegime, type Regime } from './regime';
@@ -38,23 +41,29 @@ export interface EngineState {
  */
 export const DEFAULT_TIME_SCALE = 1_400_000;
 
+/** Single-regime parameters (before time scaling): mu 0, sigma = sqrt(0.625 x 0.009^2 + 0.375 x 0.02^2), i.e. the
+ *  long-run volatility of the old expansion/recession mix, so candles keep their GBP/JPY-like size. */
+export const SINGLE_REGIME = { mu: 0, sigma: 0.014164 };
+
 export class TapeEngine {
   price: number;
   regime: Regime = 'expansion';
   /** central-bank rate in percent, 0-15 */
   rate: number;
   readonly timeScale: number;
+  readonly regimeSwitching: boolean;
   private stepInRoll = 0;
   private packets = 0;
 
-  constructor(opts: { startPrice?: number; rate?: number; timeScale?: number } = {}) {
+  constructor(opts: { startPrice?: number; rate?: number; timeScale?: number; regimeSwitching?: boolean } = {}) {
     this.price = opts.startPrice ?? START_PRICE;
     this.rate = opts.rate ?? 5;
     this.timeScale = opts.timeScale ?? DEFAULT_TIME_SCALE;
+    this.regimeSwitching = opts.regimeSwitching ?? false;
   }
 
   step(p: Packet, time: number): Tick {
-    const base = REGIMES[this.regime];
+    const base = this.regimeSwitching ? REGIMES[this.regime] : SINGLE_REGIME;
     const mu = base.mu / this.timeScale, sigma = base.sigma / Math.sqrt(this.timeScale);
     const prevPrice = this.price;
     this.price = prevPrice * Math.exp(mu - (sigma * sigma) / 2 + sigma * gaussian(p.a, p.b));
@@ -62,7 +71,7 @@ export class TapeEngine {
     this.stepInRoll++;
     let shift: Tick['shift'] = null;
     const regimeUsed = this.regime;
-    if (this.stepInRoll >= STEPS_PER_ROLL) {
+    if (this.regimeSwitching && this.stepInRoll >= STEPS_PER_ROLL) {
       this.stepInRoll = 0;
       const next = rollRegime(this.regime, this.rate, uc(p.c));
       if (next !== this.regime) {
@@ -77,8 +86,8 @@ export class TapeEngine {
     return { price: this.price, regime: this.regime, rate: this.rate, stepInRoll: this.stepInRoll, packets: this.packets };
   }
 
-  static from(s: EngineState): TapeEngine {
-    const e = new TapeEngine({ startPrice: s.price, rate: s.rate });
+  static from(s: EngineState, opts: { regimeSwitching?: boolean } = {}): TapeEngine {
+    const e = new TapeEngine({ startPrice: s.price, rate: s.rate, ...opts });
     e.regime = s.regime;
     e.stepInRoll = s.stepInRoll;
     e.packets = s.packets;

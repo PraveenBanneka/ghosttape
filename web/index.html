@@ -20,7 +20,6 @@
       <div class="quote">
         <span id="price" class="mono price">100.00</span>
         <span id="change" class="chg mono">+0.00%</span>
-        <span id="regime" class="regime expansion" title="Market regime (two-state Markov switch)">Expansion</span>
       </div>
       <div class="spacer"></div>
       <div id="feed" class="feed demo" aria-live="polite">
@@ -37,8 +36,11 @@
         <div id="indicatorMenu" class="menu" hidden></div>
       </div>
       <div class="sep"></div>
-      <button type="button" class="tbtn primary" id="btnConnect">Connect ESP32</button>
-      <button type="button" class="tbtn" id="btnDemo">Demo entropy</button>
+      <label class="trng" title="OFF: browser randomness (demo). ON: hardware randomness from the ESP32 plugged into this computer (desktop Chrome or Edge).">
+        <input type="checkbox" id="trngSwitch" role="switch" aria-label="TRNG: use the ESP32 hardware random number generator" />
+        <span class="track" aria-hidden="true"><span class="knob"></span></span>
+        <span class="trng-text"><b>TRNG</b> <span id="trngState">off</span></span>
+      </label>
       <button type="button" class="tbtn" id="btnOnline" title="Watch the shared online tape relayed through Cloudflare">Watch online</button>
       <button type="button" class="tbtn" id="btnBridge" hidden title="Forward this ESP32's signed packets to the online relay">Share ESP32 online</button>
       <div class="sep"></div>

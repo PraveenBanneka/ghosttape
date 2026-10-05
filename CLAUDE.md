@@ -44,6 +44,7 @@ not real market data" + no-advice notice always visible. Ask before changing mod
 | Chart library | 1-hour spike on KLineChart (built-in draggable drawings + indicators); fall back to TradingView Lightweight Charts + own tools |
 | Timeframes | 1s / 10s / 30s / 1m / 5m wall-clock buckets from one tick stream; regime roll stays every 8 packets (maths unchanged) |
 | Market clock | **GBP/JPY-like**: k = 1,400,000 (mu/k, sigma/sqrt k), start 190.000, 3 decimals. ~4 pips per 1m candle, ~0.2%/h, ~1%/day (SPEC addendum 10) |
+| Macro layer | **None for now**: no rate slider, no expansion/recession regimes; driftless GBM, `c` word unused (SPEC addendum 11) |
 | Trading | **Spread 0** for now. Gapped stops fill at the gap price; slippage shown in the journal |
 | Video features | TradingView layout: left tool rail, draggable favourites bar, indicators in bottom panes (ATR, EMA bands, RSI, MACD, volume), trendlines, Long/Short position boxes (drag/stretch, Stop/Target/RR/PnL) that place real demo orders, $10k demo account |
 | Proof | Google Colab notebook: ESP32 vs MT19937, PCG64, OS CSPRNG, RANDU (known-bad control). Honest framing: tests show "no detectable pattern"; "true" randomness rests on the physical source |

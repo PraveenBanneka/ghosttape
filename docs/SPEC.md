@@ -24,6 +24,10 @@
 > 7. Chart library: 1-hour spike on KLineChart (Apache-2.0, built-in drawings + indicators), falling back to
 >    TradingView Lightweight Charts + our own tools. Either way, keep the library's attribution and licence notices.
 > 8. The prototype's real CSE price panel is dropped.
+> 11. **No rates or macro simulation (for now).** Praveen removed the central-bank-rate slider and the expansion/recession
+>    regimes. Default model: one driftless GBM step per packet, mu = 0, sigma = 0.014164 before the clock scale (the old
+>    regime mix's long-run volatility), so candles stay GBP/JPY-sized. The packet's third word `c` is unused (packet
+>    format unchanged; nothing is reused). The prototype regime model stays in code behind `regimeSwitching: true`.
 > 10. **Market clock = GBP/JPY-like preset** (Praveen: "most like real fx charts, think GJ"). Same Box-Muller/GBM/regime
 >    maths, run on a slower clock: per-step mu/k and sigma/sqrt(k) with k = 1,400,000, start price 190.000, 3 decimals
 >    (1 pip = 0.01). Simulated at 6.25 packets/s: ~0.023% per 1-minute candle (~4 pips), ~0.2% per hour, ~1% per day,

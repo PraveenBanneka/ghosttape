@@ -4,8 +4,7 @@ import type { Overlay } from 'klinecharts';
 import { LIMITS } from './config';
 import { Account, type AccountState, type Deal, type Side } from './model/account';
 import { MultiSeries, TIMEFRAMES, type Candle, type Timeframe } from './model/aggregator';
-import { PRICE_DECIMALS, TapeEngine, type EngineState, type Tick } from './model/engine';
-import { REGIMES, switchProbability } from './model/regime';
+import { PRICE_DECIMALS, SINGLE_REGIME, TapeEngine, type EngineState, type Tick } from './model/engine';
 import type { Packet } from './model/random';
 import { cryptoPacket, DemoSource, PACKET_MS } from './entropy/demo';
 import { SerialSource, webSerialSupported } from './entropy/serial';
@@ -99,7 +98,7 @@ function scheduleRender(heavy = false): void {
   requestAnimationFrame(() => {
     renderQueued = false;
     const m = mid();
-    renderQuote(m, startPrice, engine.regime);
+    renderQuote(m, startPrice);
     renderAccount(account, account.snapshot(m), T.stop_out_level_pct);
     renderPositions(account, m);
     const lots = readLots();
@@ -116,10 +115,10 @@ function renderStats(): void {
   const ago = serialSrc && serialSrc.lastPacketAt ? Math.round(now - serialSrc.lastPacketAt) : null;
   $('feedStats').textContent = `${packets.toLocaleString('en-US')} packets · ${rate.toFixed(1)}/s` +
     (mode === 'esp32' && serialSrc ? ` · ${serialSrc.seq.gaps} gaps` : '');
-  const r = REGIMES[engine.regime];
+  const sigma = SINGLE_REGIME.sigma / Math.sqrt(engine.timeScale);
   renderProof({
     source: mode, packets, gaps: serialSrc?.seq.gaps ?? 0, restarts: serialSrc?.seq.restarts ?? 0, rate, lastAgoMs: mode === 'esp32' ? ago : null,
-    radio, regime: engine.regime, mu: r.mu, sigma: r.sigma, switchProb: switchProbability(engine.regime, engine.rate),
+    radio, mu: 0, sigma,
     barTicks: series.series[tape.tf].last()?.ticks ?? 0, tf: tape.tf,
   });
 }
@@ -526,9 +525,22 @@ $('btnIndicators').onclick = e => {
 document.addEventListener('click', e => { if (!menu.hidden && !menu.contains(e.target as Node)) { menu.hidden = true; $('btnIndicators').setAttribute('aria-expanded', 'false'); } });
 for (const name of prefs.indicators) tape.setIndicator(name, true);
 
-$('btnConnect').onclick = () => void connectEsp32();
-$('btnDemo').onclick = () => void useDemo();
-$('btnOnline').onclick = () => useOnline();
+// TRNG switch: OFF = browser randomness (demo), ON = ESP32 hardware over USB (online relay if this browser has no Web Serial)
+const trng = $<HTMLInputElement>('trngSwitch');
+function syncTrngSwitch(): void {
+  trng.checked = mode !== 'demo';
+  $('trngState').textContent = mode === 'demo' ? 'off · browser' : mode === 'online' ? 'on · online ESP32' : 'on · ESP32';
+}
+trng.onchange = async () => {
+  if (trng.checked) {
+    if (webSerialSupported()) await connectEsp32(); else useOnline();
+  } else {
+    await useDemo();
+  }
+  syncTrngSwitch(); // a cancelled port picker leaves the tape in demo mode, so the switch flips back off
+};
+setInterval(syncTrngSwitch, 1000);
+$('btnOnline').onclick = () => { useOnline(); syncTrngSwitch(); };
 $('btnBridge').onclick = () => shareOnline();
 $('btnProof').onclick = () => {
   const p = $('proof');

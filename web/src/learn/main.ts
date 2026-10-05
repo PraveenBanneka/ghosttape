@@ -81,10 +81,8 @@ function s1New(): void {
   s1 = generateSession(rec.src);
   const c = s1.candles;
   const first = c[0].open, last = c[c.length - 1].close;
-  const recessionShare = s1.regimes.filter(r => r === 'recession').length / s1.regimes.length;
   $('s1Stats').textContent =
-    `1,000 random steps → ${c.length} one-second candles · ${px(first)} → ${px(last)} (${move(last - first)}, ${pct((last / first - 1) * 100, 3)}) · ` +
-    `mood flipped ${s1.shifts} time${s1.shifts === 1 ? '' : 's'} · ${share(recessionShare)} of candles in recession`;
+    `1,000 random steps → ${c.length} one-second candles · ${px(first)} → ${px(last)} (${move(last - first)}, ${pct((last / first - 1) * 100, 3)})`;
   const body = $('s1Packets').querySelector('tbody')!;
   body.innerHTML = rec.seen.map((p, i) => {
     const z = gaussian(p.a, p.b);
@@ -99,11 +97,9 @@ function s1New(): void {
 
 function s1Draw(): void {
   if (!s1) return;
-  const shadeOn = $<HTMLInputElement>('s1Shade').checked;
-  $('s1Legend').hidden = !shadeOn;
   const session = s1;
   mount($<HTMLCanvasElement>('s1Chart'), () => drawCandles($<HTMLCanvasElement>('s1Chart'), session.candles, {
-    axis: true, shade: shadeOn ? session.regimes.map(r => r === 'recession') : undefined,
+    axis: true,
   }));
 }
 
@@ -320,11 +316,11 @@ function s4Show(r: ManyResult): void {
   const v: string[] = [];
   if (t >= 2.5) {
     v.push(`Verdict: on this tape the ${name} beat the coin, and not by luck (the gap is ${t.toFixed(1)} standard errors wide).`);
-    v.push('Why? Not because of chart patterns. Remember the two hidden moods from section 1: each lasts a few hundred steps on average, expansion drifts up and recession drifts down. A trend-following rule climbs aboard whichever drift is running. Each single step is still a fresh coin flip; the mood is the only thing with memory.');
+    v.push('This tape has no drift and no memory, so an edge this size should not happen. Try another batch: a real edge would show up again, a fluke will not.');
     v.push(`So the lie detector did its job: it found a real property of how this tape is built, not a magic shape. Even so, ${share(losing / r.sessions)} of sessions lost money, so one chart could easily have told you the opposite. Real markets promise no steady moods like these, and real trades pay costs (the spread here is ${CFG.spread}).`);
   } else if (t <= -2.5) {
     v.push(`Verdict: the ${name} did worse than a coin flip here (${t.toFixed(1)} standard errors).`);
-    v.push('It kept betting against the drift of the hidden mood. A rule can lose to a coin just as reliably as it can beat one.');
+    v.push('On a driftless tape this is almost certainly a fluke. Run another batch to check.');
   } else {
     v.push(`Verdict: no real edge. The ${name} did about as well as a coin flip (${share(r.rule.sessionWinRate)} vs ${share(r.coin.sessionWinRate)} of sessions made money).`);
     if (r.rule.tradeWinRate < 0.45) v.push(`Notice the rule won only ${share(r.rule.tradeWinRate)} of its trades: trend rules take many small losses and a few bigger wins. On noise it all nets out to about zero.`);
@@ -387,7 +383,6 @@ function regenerateAll(): void {
 
 function init(): void {
   $('s1New').addEventListener('click', s1New);
-  $('s1Shade').addEventListener('change', s1Draw);
   $('s2New').addEventListener('click', s2New);
   $('s2Reveal').addEventListener('click', s2Reveal);
   $('s3New').addEventListener('click', s3New);

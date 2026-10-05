@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { gaussian, seededPackets, TWO32, u1, u2, uc } from '../src/model/random';
 import { REGIMES, rollRegime, switchProbability } from '../src/model/regime';
-import { DEFAULT_TIME_SCALE, PRICE_DECIMALS, STEPS_PER_ROLL, TapeEngine } from '../src/model/engine';
+import { DEFAULT_TIME_SCALE, PRICE_DECIMALS, SINGLE_REGIME, STEPS_PER_ROLL, TapeEngine } from '../src/model/engine';
 import { CandleSeries, MultiSeries, syntheticVolume, TIMEFRAMES } from '../src/model/aggregator';
 import { parseLine, SeqTracker } from '../src/model/packet';
 import { LIMITS, parseJsonc } from '../src/config';
@@ -54,14 +54,14 @@ describe('TapeEngine', () => {
     expect(run()).toEqual(run());
   });
   it('one packet = one GBM step with the prototype formula (k = 1, start 100)', () => {
-    const e = new TapeEngine({ startPrice: 100, timeScale: 1 });
+    const e = new TapeEngine({ startPrice: 100, timeScale: 1, regimeSwitching: true });
     const p = { seq: 0, a: 123456789, b: 987654321, c: 5 };
     const { mu, sigma } = REGIMES.expansion;
     const expected = 100 * Math.exp(mu - (sigma * sigma) / 2 + sigma * gaussian(p.a, p.b));
     expect(e.step(p, 0).price).toBe(expected);
   });
   it('rolls the regime only on every 8th packet, using that packet\'s c word', () => {
-    const e = new TapeEngine({ rate: 15 });
+    const e = new TapeEngine({ rate: 15, regimeSwitching: true });
     const shifting = { seq: 0, a: 1, b: 1, c: 0 }; // uc(0) is tiny -> always switches when rolled
     for (let i = 1; i < STEPS_PER_ROLL; i++) expect(e.step({ ...shifting, seq: i }, i).shift).toBeNull();
     const t = e.step({ ...shifting, seq: 8 }, 8);
@@ -162,8 +162,32 @@ describe('market-clock time scale (owner chose the GBP/JPY-like preset)', () => 
     const p = { seq: 0, a: 123456789, b: 987654321, c: 5 };
     const z = gaussian(p.a, p.b);
     const { mu, sigma } = REGIMES.expansion;
-    expect(new TapeEngine({ startPrice: 100, timeScale: 1 }).step(p, 0).price).toBe(100 * Math.exp(mu - (sigma * sigma) / 2 + sigma * z));
+    expect(new TapeEngine({ startPrice: 100, timeScale: 1, regimeSwitching: true }).step(p, 0).price).toBe(100 * Math.exp(mu - (sigma * sigma) / 2 + sigma * z));
     const k = 234, m = mu / k, s = sigma / Math.sqrt(k);
-    expect(new TapeEngine({ startPrice: 100, timeScale: k }).step(p, 0).price).toBeCloseTo(100 * Math.exp(m - (s * s) / 2 + s * z), 12);
+    expect(new TapeEngine({ startPrice: 100, timeScale: k, regimeSwitching: true }).step(p, 0).price).toBeCloseTo(100 * Math.exp(m - (s * s) / 2 + s * z), 12);
+  });
+});
+
+describe('no rates or macro simulation by default (Praveen, 2026-10-05)', () => {
+  it('default engine: no regime switching, no drift, never shifts, c word unused', () => {
+    const e = new TapeEngine();
+    expect(e.regimeSwitching).toBe(false);
+    expect(SINGLE_REGIME.mu).toBe(0);
+    const p = { seq: 0, a: 123456789, b: 987654321, c: 0 }; // c = 0 would always flip a regime if rolled
+    const s = SINGLE_REGIME.sigma / Math.sqrt(DEFAULT_TIME_SCALE);
+    let price = 190;
+    for (let i = 0; i < 64; i++) {
+      const t = e.step({ ...p, seq: i }, i);
+      price *= Math.exp(-(s * s) / 2 + s * gaussian(p.a, p.b));
+      expect(t.shift).toBeNull();
+      expect(t.price).toBeCloseTo(price, 9);
+    }
+    expect(e.regime).toBe('expansion');
+  });
+  it('the c word does not change the price path', () => {
+    const a = new TapeEngine(), b = new TapeEngine();
+    const next = seededPackets(9);
+    for (let i = 0; i < 500; i++) { const p = next(); a.step(p, i); b.step({ ...p, c: (p.c ^ 0xffffffff) >>> 0 }, i); }
+    expect(a.price).toBe(b.price);
   });
 });
