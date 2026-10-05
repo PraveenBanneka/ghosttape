@@ -28,21 +28,30 @@ export interface EngineState {
   packets: number;
 }
 
+/**
+ * Market-clock scale k (pending Praveen's decision, 2026-10-05): per-step drift mu/k and volatility sigma/sqrt(k),
+ * i.e. the same GBM run on a slower clock. k = 1 reproduces the prototype exactly.
+ */
+export const DEFAULT_TIME_SCALE = 1;
+
 export class TapeEngine {
   price: number;
   regime: Regime = 'expansion';
   /** central-bank rate in percent, 0-15 */
   rate: number;
+  readonly timeScale: number;
   private stepInRoll = 0;
   private packets = 0;
 
-  constructor(opts: { startPrice?: number; rate?: number } = {}) {
+  constructor(opts: { startPrice?: number; rate?: number; timeScale?: number } = {}) {
     this.price = opts.startPrice ?? START_PRICE;
     this.rate = opts.rate ?? 5;
+    this.timeScale = opts.timeScale ?? DEFAULT_TIME_SCALE;
   }
 
   step(p: Packet, time: number): Tick {
-    const { mu, sigma } = REGIMES[this.regime];
+    const base = REGIMES[this.regime];
+    const mu = base.mu / this.timeScale, sigma = base.sigma / Math.sqrt(this.timeScale);
     const prevPrice = this.price;
     this.price = prevPrice * Math.exp(mu - (sigma * sigma) / 2 + sigma * gaussian(p.a, p.b));
     this.packets++;

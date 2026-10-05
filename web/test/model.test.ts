@@ -141,3 +141,14 @@ describe('owner limits (pinned defaults)', () => {
     expect(parseJsonc('{\n // c\n "a": 1, // x\n "b": 2\n}')).toEqual({ a: 1, b: 2 });
   });
 });
+
+describe('market-clock time scale (pending owner choice)', () => {
+  it('k = 1 is the prototype formula; k scales drift by 1/k and volatility by 1/sqrt(k)', () => {
+    const p = { seq: 0, a: 123456789, b: 987654321, c: 5 };
+    const z = gaussian(p.a, p.b);
+    const { mu, sigma } = REGIMES.expansion;
+    expect(new TapeEngine().step(p, 0).price).toBe(100 * Math.exp(mu - (sigma * sigma) / 2 + sigma * z));
+    const k = 234, m = mu / k, s = sigma / Math.sqrt(k);
+    expect(new TapeEngine({ timeScale: k }).step(p, 0).price).toBeCloseTo(100 * Math.exp(m - (s * s) / 2 + s * z), 12);
+  });
+});
