@@ -43,7 +43,7 @@ export interface Deal extends Position {
   slippage: number;
 }
 
-export type JournalKind = 'open' | 'close' | 'sl' | 'tp' | 'stopout' | 'modify' | 'reject' | 'margincall' | 'info';
+export type JournalKind = 'open' | 'close' | 'sl' | 'tp' | 'stopout' | 'modify' | 'reject' | 'margincall' | 'info' | 'regime' | 'entropy' | 'entropy-bad';
 export interface JournalEntry {
   time: number;
   kind: JournalKind;

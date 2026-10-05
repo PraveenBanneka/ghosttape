@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>GhostTape</title>
+  <meta name="description" content="A TradingView-style chart and MT5-style demo terminal on a synthetic market driven by ESP32 hardware randomness." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand"><span class="logo-dot" aria-hidden="true"></span>GhostTape</div>
+      <div class="symbol">
+        <b>GHOST/USD</b>
+        <span class="badge-synthetic" title="Every price comes from random noise. Nothing here is a real market.">Synthetic tape, not real market data</span>
+      </div>
+      <div class="quote">
+        <span id="price" class="mono price">100.00</span>
+        <span id="change" class="chg mono">+0.00%</span>
+        <span id="regime" class="regime expansion" title="Market regime (two-state Markov switch)">Expansion</span>
+      </div>
+      <div class="spacer"></div>
+      <div id="feed" class="feed demo" aria-live="polite">
+        <span class="pip" aria-hidden="true"></span><span id="feedLabel">DEMO · browser entropy, not hardware</span>
+      </div>
+      <span id="feedStats" class="feed-stats mono"></span>
+    </header>
+
+    <nav class="toolbar" aria-label="Chart controls">
+      <div class="tf-group" id="timeframes" role="group" aria-label="Interval"></div>
+      <div class="sep"></div>
+      <div class="menu-wrap">
+        <button type="button" class="tbtn" id="btnIndicators" aria-haspopup="true" aria-expanded="false">ƒx Indicators ▾</button>
+        <div id="indicatorMenu" class="menu" hidden></div>
+      </div>
+      <div class="sep"></div>
+      <button type="button" class="tbtn primary" id="btnConnect">Connect ESP32</button>
+      <button type="button" class="tbtn" id="btnDemo">Demo entropy</button>
+      <div class="sep"></div>
+      <label class="rate" for="rate">Central bank rate <b id="rateVal" class="mono">5.0%</b>
+        <input type="range" id="rate" min="0" max="15" step="0.5" value="5" />
+      </label>
+      <div class="sep"></div>
+      <button type="button" class="tbtn" id="btnProof" aria-expanded="false">Entropy proof</button>
+      <a class="tbtn link" href="learn.html">Why patterns appear in noise →</a>
+    </nav>
+    <div id="sourceMsg" class="source-msg" role="status"></div>
+
+    <main class="workspace">
+      <aside class="toolrail" id="toolrail" aria-label="Drawing tools"></aside>
+      <section class="chart-area">
+        <div id="chart" class="chart" role="img" aria-label="GhostTape candlestick chart"></div>
+        <div id="freeze" class="freeze" hidden><span id="freezeText">ESP32 disconnected · no entropy · no candles</span></div>
+        <div id="favbar" class="favbar" hidden aria-label="Favourite tools"></div>
+        <div id="boxAction" class="box-action" hidden></div>
+      </section>
+
+      <aside class="orderpanel" aria-label="Order ticket">
+        <div class="ticket-head">One-click trading <span class="muted">· demo account</span></div>
+        <div class="oneclick">
+          <button type="button" class="side sell" id="btnSell"><span>SELL</span><b id="bidPx" class="mono">100.00</b></button>
+          <div class="lots">
+            <button type="button" class="step" id="lotsDown" aria-label="Decrease volume">−</button>
+            <input id="lots" class="mono" type="number" value="0.10" min="0.01" max="5" step="0.01" aria-label="Volume in lots" />
+            <button type="button" class="step" id="lotsUp" aria-label="Increase volume">+</button>
+          </div>
+          <button type="button" class="side buy" id="btnBuy"><span>BUY</span><b id="askPx" class="mono">100.00</b></button>
+        </div>
+        <div class="stops">
+          <label>Stop loss<input id="sl" class="mono" type="number" step="0.01" placeholder="none" /></label>
+          <label>Take profit<input id="tp" class="mono" type="number" step="0.01" placeholder="none" /></label>
+        </div>
+        <dl class="ticket-info mono">
+          <dt>Margin required</dt><dd id="marginReq">$0.00</dd>
+          <dt>Free margin</dt><dd id="freeMarginT">$10,000.00</dd>
+          <dt>Leverage</dt><dd id="leverage">1:100</dd>
+          <dt>Spread</dt><dd id="spread">0.00</dd>
+        </dl>
+        <div id="orderMsg" class="order-msg" role="alert"></div>
+        <p class="hint">Tip: draw a <b>Long</b> or <b>Short Position</b> box with the tools on the left, drag its stop and target, then press <b>Place order</b>. Drag the SL/TP lines of an open position to modify it.</p>
+      </aside>
+    </main>
+
+    <section class="terminal">
+      <div class="acct-strip mono">
+        <div><span>Balance</span><b id="aBalance">$10,000.00</b></div>
+        <div><span>Equity</span><b id="aEquity">$10,000.00</b></div>
+        <div><span>Floating P&amp;L</span><b id="aFloating">$0.00</b></div>
+        <div><span>Margin</span><b id="aMargin">$0.00</b></div>
+        <div><span>Free margin</span><b id="aFree">$10,000.00</b></div>
+        <div><span>Margin level</span><b id="aLevel">—</b></div>
+        <button type="button" class="tbtn small" id="btnReset">Reset account</button>
+      </div>
+      <div id="marginWarn" class="margin-warn" hidden></div>
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" class="tab active" data-tab="trade" aria-selected="true">Trade <span id="tradeCount" class="count">0</span></button>
+        <button type="button" role="tab" class="tab" data-tab="history" aria-selected="false">History</button>
+        <button type="button" role="tab" class="tab" data-tab="journal" aria-selected="false">Journal</button>
+      </div>
+      <div class="tabpanel" id="tab-trade"></div>
+      <div class="tabpanel" id="tab-history" hidden></div>
+      <div class="tabpanel" id="tab-journal" hidden></div>
+    </section>
+
+    <section id="proof" class="proof" hidden aria-label="Entropy proof">
+      <div class="proof-grid">
+        <div>
+          <h3>Raw entropy feed <span class="muted">· one packet per price step, each used once</span></h3>
+          <div id="rawfeed" class="rawfeed mono"></div>
+        </div>
+        <div>
+          <h3>Where the numbers come from</h3>
+          <dl id="proofInfo" class="proof-info mono"></dl>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p><b>Synthetic tape, not real market data.</b> Every price comes from random noise: in ESP32 mode from the chip's
+        hardware random number generator (radio-verified), in demo mode from your browser. Demo account only: no real
+        money, no broker, no execution. Not financial advice and not a trading signal.</p>
+      <p class="credits">Charts by <a href="https://github.com/klinecharts/KLineChart" target="_blank" rel="noopener">KLineChart</a>
+        (Apache-2.0). Trading rules modelled on MT5 conventions. GhostTape is not affiliated with TradingView or MetaQuotes.</p>
+    </footer>
+  </div>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
