@@ -1,13 +1,18 @@
 # GhostTape work log
 
 ## State block (keep current; a cold session recovers from this)
-- **Phase:** Stage 0 done + **Phase 1 PASSED with radio verification** (2026-10-05). Nothing deployed, no GitHub repo, no push.
-- **Waiting on Praveen:** (1) run `node tools/lock-limits.cjs` once so `npm test` goes green;
-  (2) [done] repo created PRIVATE + 4 commits pushed (2026-10-05, "GO private");
-  (3) restart Claude in this folder so the guard hook goes live (it isn't loaded in the setup session).
-- **Next:** Phase A engine + tests → chart-library spike → Phase B terminal.
-- **Hardware:** ESP32-D0WD-V3 rev 3.1 on COM5 (CP210x). Arduino IDE 2 + esp32 core 3.3.0 installed.
-- **GitHub:** https://github.com/PraveenBanneka/ghosttape (PRIVATE). Pushes need GO.
+- **Status (2026-10-05 end of day):** all phases built (0, 1, A-F) and committed/pushed to the PRIVATE repo
+  github.com/PraveenBanneka/ghosttape. ESP32 live mode verified by Praveen in his browser (TRNG switch on, unplug/replug).
+- **Live site: OFF** (Praveen's choice). workers_dev/preview_urls false; URL returns 404; nothing deleted. Last public
+  version 34471865. To restore: set both flags true + `npx wrangler deploy`. Online mode OFF in limits.jsonc.
+- **Model:** GBP/JPY-like clock (k = 1.4M, start 190.000, 3 decimals), driftless GBM, no regimes/rates (c word unused).
+- **Run locally:** `cd web && npm run dev` -> http://localhost:5173 (TRNG switch works with the ESP32 on COM5 in Chrome/Edge).
+  Tests: `npm test` (limits + 36 relay) · `cd web && npm test` (56) · `npm run worker:e2e` (31 checks).
+- **Open items (none urgent):** (1) firmware GT1S signing + obey GT1,CMD,pause (only needed before online mode is
+  switched on; then `wrangler secret put DEVICE_SECRET`); (2) README screenshots + notebook figures + Colab link;
+  (3) relay replay hardening (signed HELLO with boot nonce) needs Praveen's OK (packet format); (4) optional for
+  Praveen: contract_size 1000 in limits.jsonc for ~$10/pip per lot; (5) ZedPath's guard misses `wrangler d1 create`
+  (told Praveen; not ours to edit).
 
 ## 2026-10-05 — Day one: plan approved, Stage 0
 - Read: root spec (25 Sep), `ghosttape/CLAUDE.md` + prototype, the artifact (same as prototype), ZedPath's
