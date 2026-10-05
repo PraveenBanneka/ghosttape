@@ -5,7 +5,7 @@ import { LIMITS } from './config';
 import { Account, type AccountState, type Deal, type Side } from './model/account';
 import { MultiSeries, TIMEFRAMES, type Candle, type Timeframe } from './model/aggregator';
 import { PRICE_DECIMALS, TapeEngine, type EngineState, type Tick } from './model/engine';
-import { REGIMES } from './model/regime';
+import { REGIMES, switchProbability } from './model/regime';
 import type { Packet } from './model/random';
 import { cryptoPacket, DemoSource, PACKET_MS } from './entropy/demo';
 import { SerialSource, webSerialSupported } from './entropy/serial';
@@ -119,7 +119,7 @@ function renderStats(): void {
   const r = REGIMES[engine.regime];
   renderProof({
     source: mode, packets, gaps: serialSrc?.seq.gaps ?? 0, restarts: serialSrc?.seq.restarts ?? 0, rate, lastAgoMs: mode === 'esp32' ? ago : null,
-    radio, regime: engine.regime, mu: r.mu, sigma: r.sigma, centralRate: engine.rate,
+    radio, regime: engine.regime, mu: r.mu, sigma: r.sigma, switchProb: switchProbability(engine.regime, engine.rate),
     barTicks: series.series[tape.tf].last()?.ticks ?? 0, tf: tape.tf,
   });
 }
@@ -128,7 +128,7 @@ setInterval(renderStats, 500);
 // ---------------------------------------------------------------- sessions
 function resetState(newMode: Mode): void {
   mode = newMode;
-  engine = new TapeEngine({ rate: Number($<HTMLInputElement>('rate').value) });
+  engine = new TapeEngine(); // rate fixed at the default 5% (slider removed, Praveen 2026-10-05)
   series = new MultiSeries(MAX_BARS);
   account = new Account(T);
   startPrice = engine.price;
@@ -236,10 +236,6 @@ async function connectEsp32(): Promise<void> {
 }
 
 // ---------------------------------------------------------------- online relay (viewer + USB bridge)
-function syncRateSlider(): void {
-  $<HTMLInputElement>('rate').value = String(engine.rate);
-  $('rateVal').textContent = `${engine.rate.toFixed(1)}%`;
-}
 
 function relayFeed(s: RelayStatus): void {
   const live = s.online_enabled && s.uplink === 'up' && !s.frozen;
@@ -262,7 +258,6 @@ function useOnline(keepSerial = false): void {
     snapshot: s => {
       resetState('online');
       engine = TapeEngine.from(s.engine);
-      syncRateSlider();
       for (const tf of TIMEFRAMES) series.series[tf.id].bars.push(...(s.candles[tf.id] ?? []));
       startPrice = series.series['5m'].bars[0]?.open ?? engine.price;
       tape.reload();
@@ -535,17 +530,6 @@ $('btnConnect').onclick = () => void connectEsp32();
 $('btnDemo').onclick = () => void useDemo();
 $('btnOnline').onclick = () => useOnline();
 $('btnBridge').onclick = () => shareOnline();
-$('rate').oninput = e => {
-  if (mode === 'online') { // the shared tape's rate belongs to the relay; changing it locally would desync this viewer
-    syncRateSlider();
-    toast('In online mode the central bank rate is shared by every viewer and set by the relay.');
-    return;
-  }
-  const v = Number((e.target as HTMLInputElement).value);
-  engine.rate = v;
-  $('rateVal').textContent = `${v.toFixed(1)}%`;
-};
-$('rate').onchange = () => { if (mode !== 'online') log('info', `central bank rate set to ${engine.rate.toFixed(1)}%`); };
 $('btnProof').onclick = () => {
   const p = $('proof');
   p.hidden = !p.hidden;

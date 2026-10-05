@@ -128,7 +128,7 @@ export interface ProofInfo {
   regime: string;
   mu: number;
   sigma: number;
-  centralRate: number;
+  switchProb: number;
   barTicks: number;
   tf: string;
 }
@@ -146,7 +146,7 @@ export function renderProof(i: ProofInfo): void {
     ['Rate', `${i.rate.toFixed(2)} packets/s${i.lastAgoMs === null ? '' : ` · last ${i.lastAgoMs > 9999 ? '>10 s' : `${i.lastAgoMs} ms`} ago`}`],
     ['Mapping', 'u₁=(a+1)/(2³²+1), u₂=b/2³², z=√(−2 ln u₁)·cos(2πu₂)'],
     ['Price step', `price ← price·exp((μ−σ²/2)+σz), μ=${i.mu.toFixed(4)}, σ=${i.sigma.toFixed(3)} (${i.regime})`],
-    ['Regime roll', `every 8th packet with uc=(c+1)/(2³²+1), central bank rate ${i.centralRate.toFixed(1)}%`],
+    ['Regime roll', `every 8th packet with uc=(c+1)/(2³²+1); flips if uc < ${i.switchProb.toFixed(3)}`],
     ['Current bar', `${i.barTicks} packets in this ${i.tf} candle`],
   ];
   $('proofInfo').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');

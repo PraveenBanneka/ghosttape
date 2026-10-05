@@ -138,3 +138,15 @@
 - Online mode browser-tested locally (wrangler dev on 8799 with the local override; 8787 was taken by Praveen's
   separate "Fair Map" project dev server, left untouched): two viewers LIVE from a simulated signed uplink, both froze
   at the identical price 189.970 within 400 ms of the uplink stopping. Rate slider locked in online mode (shared).
+
+## 2026-10-05 — Central-bank-rate slider removed; ESP32 data independently verified; FIRST DEPLOY
+- Praveen: "central-bank-rate slider?? we dont want those" / "No rates or macro economic simulation wanted for now".
+  Slider removed (rate fixed at the 5% default, so behaviour unchanged). Regime (expansion/recession) removal next.
+- Praveen asked whether the agent really used the ESP32. Main session re-captured 2 MB itself (capture build on COM5,
+  90.1 KB/s): chi2 p=0.404, 7.999911 bits/byte, bit z=+0.36, serial corr -0.0007; 0.387% same-position matches with the
+  agent's file (chance 0.391%). Live firmware re-flashed afterwards.
+- **Deployed** (rule 7, no GO needed): whoami = Stacklineops e6474e41 (not salon). `wrangler deploy` -> Version
+  014bee16-cbf7-41df-95ab-4f18c65031bf, https://ghosttape.teamkestrel.workers.dev . Rate-limit bindings accepted on Free.
+  Verified live: home 200, /learn 200 (/learn.html 307 -> /learn), /api/state online_enabled=false "online mode is off",
+  demo tape running in headless Chrome. No DEVICE_SECRET set yet (only needed when online mode is switched on).
+  Reversal: `npx wrangler rollback <previous-version-id>` (first version: redeploy a fixed build).
