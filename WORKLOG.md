@@ -95,3 +95,17 @@
   chose k = 1,400,000: ~0.023%/1m, ~0.2%/h, ~1%/day, flat long-run. Start 190.000, 3 decimals. Synthetic volume scaled
   by sqrt(k). Tests pin the prototype identity (k=1), the GJ defaults and a 12-hour volatility band: 35/35 pass.
 - Suggested to Praveen (his file): contract_size 1000 for ~$10/pip per lot. Account tests now use SPEC constants.
+
+## 2026-10-05 — Phase E: Cloudflare relay (parallel agent), verified, not deployed
+- Built by a parallel agent, reviewed + re-run by the main session after the GJ engine change:
+  `npm test` 36/36 relay unit tests (+ limits check), `npm run worker:check` clean, `npm run worker:e2e` **31/31 PASS**
+  (identical packets/prices/candles on two viewers, frozen within 404 ms of uplink silence and 9 ms of close,
+  unsigned/bad-MAC/wrong-key/replay rejected, HELLO restart, online-off refusal, viewer cap, message cap).
+- Worker `worker/src/index.ts` + Durable Object `TapeRelay` (Hibernation API, SQLite, shared engine import),
+  pure `limits.ts` (missing/malformed -> online off), `ingest.ts`, synchronous HMAC; owner limits bundled from
+  limits.jsonc; `ALLOW_TEST_OVERRIDE` only in git-ignored .dev.vars and fail-closed (503) on any non-local host.
+- wrangler.jsonc: main, assets (run_worker_first /api/*), Text rule for .jsonc, TAPE -> TapeRelay, new_sqlite_classes,
+  rate limits on 2001/2002 (Free-plan availability of that binding unconfirmed; drop the block if deploy rejects it).
+- Known limitation (needs Praveen's OK to fix, packet format): unsigned HELLO + no boot nonce allows a replay
+  "restart" by someone holding recorded signed lines; 32-bit MAC. Documented in docs/RELAY_PROTOCOL.md 3.5.
+- Main session added web/src/entropy/relay.ts (viewer + USB bridge client).

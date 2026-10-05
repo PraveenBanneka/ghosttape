@@ -3,11 +3,19 @@
   "private": true,
   "description": "GhostTape: a synthetic, tradable price tape driven by ESP32 hardware randomness. Demo account only.",
   "scripts": {
-    "test": "npm run check:limits",
+    "test": "npm run check:limits && npm run worker:test",
     "check:limits": "node tools/check-limits.cjs",
-    "leak-scan": "node .githooks/leak-scan.cjs --all"
+    "leak-scan": "node .githooks/leak-scan.cjs --all",
+    "worker:dev": "wrangler dev",
+    "worker:check": "tsc -p worker/tsconfig.json",
+    "worker:test": "vitest run --config worker/vitest.config.mts",
+    "worker:e2e": "node worker/test/e2e.mjs"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261005.1",
+    "@types/node": "^24.19.1",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11",
     "wrangler": "^4.147.0"
   }
 }

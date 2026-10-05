@@ -1,10 +1,42 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  // GhostTape Worker. Phase E adds "main", the Durable Object relay and its bindings.
-  // Name must start with "ghosttape" and must never reuse a ZedPath resource (the guard checks both).
+  // GhostTape Worker: static app (web/dist) + Phase E relay (Durable Object).
+  // Name must start with "ghosttape" and must never reuse a ZedPath resource (CLAUDE.md rule 4).
   "name": "ghosttape",
   // Pinned: Stacklineops@gmail.com's Account (confirmed by `wrangler whoami`, 2026-10-05).
-  // Shared with ZedPath. The guard allows outward actions to THIS id only.
+  // Shared with ZedPath. Deploys must target THIS id only (CLAUDE.md rule 3).
   "account_id": "e6474e41044c5722ad57c3372ab7492e",
-  "compatibility_date": "2026-10-01"
+  "compatibility_date": "2026-10-01",
+  // node:crypto (synchronous HMAC in worker/src/hmac.ts).
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Phase E relay (docs/RELAY_PROTOCOL.md). Protocol + limits logic lives in worker/src; the price maths is
+  // imported from web/src/model (one copy only).
+  "main": "worker/src/index.ts",
+
+  // The web app build. Only /api/* runs the Worker; asset requests are free and never touch the daily request cap.
+  "assets": {
+    "directory": "./web/dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"],
+    "not_found_handling": "single-page-application"
+  },
+
+  // Owner-only limits.jsonc is bundled as text at build time (worker/src/config.ts). Editing it needs a redeploy.
+  "rules": [{ "type": "Text", "globs": ["**/*.jsonc"], "fallthrough": true }],
+
+  // One relay object, named "main". Free plan: SQLite-backed Durable Objects only.
+  "durable_objects": {
+    "bindings": [{ "name": "TAPE", "class_name": "TapeRelay" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["TapeRelay"] }],
+
+  // Per-IP connection limits (GhostTape namespaces 2001/2002 only; 1001/1002 belong to ZedPath).
+  "ratelimits": [
+    { "name": "VIEW_LIMITER", "namespace_id": "2001", "simple": { "limit": 30, "period": 60 } },
+    { "name": "INGEST_LIMITER", "namespace_id": "2002", "simple": { "limit": 6, "period": 60 } }
+  ]
+
+  // Secret (never in this file): DEVICE_SECRET, set with `npx wrangler secret put DEVICE_SECRET`.
+  // Local dev reads it from the git-ignored .dev.vars. ALLOW_TEST_OVERRIDE / LIMITS_OVERRIDE are local-test only.
 }
