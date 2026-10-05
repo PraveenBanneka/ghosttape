@@ -20,10 +20,10 @@ nothing, because there is nothing underneath it but physics.
 
 | Phase | What | Status |
 |---|---|---|
-| 0 | Safe project setup (guard hooks, leak scanner, owner-only limits) | ✅ done |
+| 0 | Safe project setup (leak scanner, owner-only limits, pinned account) | ✅ done |
 | 1 | ESP32 firmware streaming hardware random packets over USB | ✅ done (1,000 packets, 0 gaps) |
-| A | Price engine + MT5 account maths, unit-tested | ⏳ next |
-| B | TradingView-style terminal (light theme, drawing tools, position boxes, indicators) | planned |
+| A | Price engine + MT5 account maths, unit-tested | ✅ done (32 tests) |
+| B | TradingView-style terminal (light theme, drawing tools, position boxes, indicators) | ⏳ in progress |
 | C | Live ESP32 mode in the browser (Web Serial), freezes when unplugged | planned |
 | D | Randomness proof notebook (Google Colab) | planned |
 | E | Online version on Cloudflare (Worker + Durable Object relay) | planned |
@@ -123,7 +123,7 @@ Colab link will appear here.
 | Browser ↔ ESP32 | Web Serial API (Chrome / Edge desktop) |
 | Online relay | Cloudflare Workers + Durable Objects (WebSocket hibernation) |
 | Proof | Python, Google Colab, ent, dieharder, PractRand |
-| Tests | Vitest (model and account maths), guard test suite |
+| Tests | Vitest (model, account and parser maths) |
 
 ## Repository layout
 
@@ -133,7 +133,7 @@ tools/capture.py            dumps raw ESP32 bytes for statistical tests
 prototype/index.html        single-file working prototype (reference)
 docs/SPEC.md                full build spec: model, protocol, phases
 limits.jsonc                owner-only quota and trading limits
-.claude/hooks/              safety guard for AI-assisted development (+ tests)
+web/                        Vite + TypeScript app (engine, account, chart)
 .githooks/                  pre-push secret/leak scanner
 ```
 
@@ -141,18 +141,18 @@ limits.jsonc                owner-only quota and trading limits
 
 ```bash
 npm install
-npm test          # limits check + guard test suite
+npm test                 # limits ceiling check
+cd web && npm install && npm test   # engine + account unit tests
 ```
 
 The web app arrives in Phase B. To see the idea today, open `prototype/index.html` in Chrome or Edge.
 
 ## Safety by design
 
-This project is built with an AI coding assistant under hard guard rails:
+Built with an AI coding assistant, with zero-friction guard rails:
 
-- a pre-tool **guard hook** blocks deploys, pushes and repo changes unless the owner explicitly says "GO",
-  and fails closed if it ever crashes;
-- **quota limits are owner-only**: the AI can't change them, and the server enforces them;
+- the Cloudflare **account is pinned** in `wrangler.jsonc`, so a deploy can never land on another account;
+- **quota limits are owner-only** (`limits.jsonc`) and enforced on the server, with hard ceilings checked by `npm test`;
 - a **pre-push leak scanner** blocks API keys, Wi-Fi passwords and device secrets from ever being published.
 
 ## Credits

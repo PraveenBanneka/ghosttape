@@ -66,3 +66,18 @@
 - The auto-mode classifier blocked Claude from rewriting CLAUDE.md rule 7 itself (self-modification), so CLAUDE.md
   still describes the guard + GO rule until Praveen pastes the new rule 7 (text given in chat). Correction given: it is
   the SAME Cloudflare account as ZedPath (different names), so free-plan limits stay shared.
+
+## 2026-10-05 — CLAUDE.md rule 7 (Praveen's text) + Phase A done
+- Praveen pasted the new rule 7 himself and deleted the old one; Claude moved it into the rules list verbatim and
+  removed the stale guard descriptions/GO steps. `limits.lock` made optional (Praveen: "I don't think we need this
+  now"); the ceiling check stays in `npm test`.
+- Phase A: `web/` (Vite 8, TypeScript 7, Vitest 4, KLineChart 10.0.3). Pure modules in `web/src/model/`:
+  `random` (u1/u2/uc, Box-Muller, seeded test source), `regime`, `engine` (one packet = one GBM step, roll every
+  8th packet), `aggregator` (1s/10s/30s/1m/5m wall-clock buckets, deterministic synthetic volume, no bars when
+  entropy stops), `account` (MT5 hedging, spread from limits, SL/TP per tick with gap fills + slippage, MT5 stop
+  validation with messages, free-margin check, margin call <100%, stop-out largest loser first <50%, journal),
+  `packet` (GT1/GT1S/HELLO/INFO/ERR parser + seq gap/restart tracker); `src/config.ts` loads limits.jsonc.
+- **32/32 tests pass**, `tsc --noEmit` clean. Covers all SPEC acceptance maths (3 sanity examples, regime clamps
+  0.15/0.01, gap slippage, stop-out order, determinism, 8-tick roll, OHLC aggregation).
+- Design note: synthetic volume no longer uses an extra random draw (the old spec's 0.8+0.4u term) so every ESP32
+  number is used exactly once by the price model; volume is deterministic from the price path.

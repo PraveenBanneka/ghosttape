@@ -7,9 +7,12 @@ const { hashLimits, readLimits } = require('./limits-lib.cjs');
 
 const root = path.join(__dirname, '..');
 const lockPath = path.join(root, 'limits.lock');
-const locked = fs.existsSync(lockPath) ? fs.readFileSync(lockPath, 'utf8').split(/\s+/)[0] : '';
+// Locking is optional (Praveen, 2026-10-05: "I don't think we need this now"). Without limits.lock only the
+// safety ceilings below are checked; once he creates the lock, any unlocked change fails the test.
+const locked = fs.existsSync(lockPath) ? fs.readFileSync(lockPath, 'utf8').split(/\s+/)[0] : null;
 const actual = hashLimits(root);
-if (locked !== actual) {
+if (locked === null) console.warn('limits check: no limits.lock (optional); checking ceilings only');
+else if (locked !== actual) {
   console.error('LIMITS CHECK FAILED: limits.jsonc does not match limits.lock.\n' +
     'If Praveen changed it on purpose, he runs `node tools/lock-limits.cjs`. Otherwise revert the change.');
   process.exit(1);

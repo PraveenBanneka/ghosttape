@@ -13,22 +13,23 @@ traders "see" predict nothing, which is the point.
 - **Hardware:** ESP32-D0WD-V3 rev 3.1 (classic ESP32, Wi-Fi + BT), CP210x USB bridge on **COM5**. Arduino IDE 2 +
   arduino-esp32 core 3.3.0 already installed; `arduino-cli.exe` ships inside Arduino IDE.
 - **Languages:** TypeScript (web app, engine, Worker) · C++/Arduino (firmware) · Python (entropy capture +
-  Colab proof notebook) · HTML/CSS · Node CommonJS + Bash (guard, leak scanner, tools).
+  Colab proof notebook) · HTML/CSS · Node CommonJS (leak scanner, tools).
 
 ## Rules (from Praveen, day one, 2026-10-05)
 1. **Never open, edit or deploy anything in the salon folder** (`...\Documents\New website june 20\VSCode site`).
    Not part of this project. Salon Cloudflare account ID starts `c5cbb437`: **if whoami ever shows it, STOP**
-   and tell Praveen. (Guard-enforced; the full ID is never written in this repo, only its SHA-256.)
-2. **Never edit or deploy ZedPath** (`...\Documents\ZedPath`). Only READ its CLAUDE.md, `.claude/hooks/` and
-   `.githooks/` to copy the pattern, nothing else. (Guard-enforced.)
+   and tell Praveen. (The full ID is never written in this repo; the leak scanner holds only its SHA-256.)
+2. **Never edit or deploy ZedPath** (`...\Documents\ZedPath`).
 3. **Cloudflare account: Stacklineops@gmail.com's Account · `e6474e41044c5722ad57c3372ab7492e`** (same as ZedPath,
    confirmed by `wrangler whoami` 2026-10-05), pinned in `wrangler.jsonc`. **Never run `wrangler login/logout`.**
 4. **Unique resource names; never touch ZedPath's** (worker/D1 `zedpath`, Vectorize `zedpath-ask`, AI Gateway
-   `zedpath`, rate-limit namespaces 1001/1002). Free-plan limits are **shared with ZedPath**. (Guard-enforced.)
+   `zedpath`, rate-limit namespaces 1001/1002). Free-plan limits are **shared with ZedPath**.
 5. Cloudflare plugin at **project scope** only (declared in `.claude/settings.json`), never user scope.
-6. Day-one basics: this file, `WORKLOG.md`, the GO-gated guard, the leak scanner. Done 2026-10-05.
-7. **Ask before any deploy, GitHub repo creation, push, or anything outward-facing.** Praveen replies starting
-   with **GO**. (Guard-enforced.)
+6. Day-one basics: this file, `WORKLOG.md`, the leak scanner. Done 2026-10-05.
+7. Pet project, no GO gates (Praveen, 2026-10-05). Claude may commit, push to PraveenBanneka/ghosttape,
+   deploy the `ghosttape` worker, create `ghosttape*` resources and flash the ESP32 without asking; it reports
+   afterwards. Still never without my explicit ask: making the repo public, deleting cloud resources or data,
+   editing limits.jsonc/limits.lock, anything in ZedPath or the salon folder. The guard hook was removed.
 8. Explain simply, short steps. Follow the web research safety protocol below.
 
 Also from `docs/SPEC.md` (non-negotiable): ESP32 mode never falls back to browser randomness; no entropy stock
@@ -51,10 +52,10 @@ not real market data" + no-advice notice always visible. Ask before changing mod
 
 ## Owner-only limits: `limits.jsonc`
 All quota switches and caps (online on/off, minutes/day, messages/day, DO GB-s/day, viewers, Firecrawl calls per
-task, trading constants incl. spread) live in `limits.jsonc`. **Claude can never edit it, `limits.lock` or
-`tools/lock-limits.cjs`, nor run commands naming them, even with GO.** Praveen edits by hand, then runs
-`node tools/lock-limits.cjs`. `npm test` (`tools/check-limits.cjs`) fails if the file changed without re-locking or
-breaks the hard ceilings. Phase E enforces the caps on the server: at a cap the Worker stops accepting packets,
+task, trading constants incl. spread) live in `limits.jsonc`. **Claude never edits it or `limits.lock`** (rule 7).
+Praveen edits by hand. Locking is optional (`node tools/lock-limits.cjs`, Praveen 2026-10-05: "I don't think we
+need this now"): `npm test` (`tools/check-limits.cjs`) always checks the hard ceilings, and once a lock exists it
+also fails on any change made without re-locking. Phase E enforces the caps on the server: at a cap the Worker stops accepting packets,
 tells the ESP32 to pause and shows viewers "daily limit reached". Safe default: online OFF.
 
 Why: going over a Free-plan limit doesn't cost money, it makes Cloudflare refuse requests until the next UTC day,
@@ -66,36 +67,22 @@ if run 24/7 = ~26k billed requests (20:1) of 100k/day, and ~10,800 of 13,000 GB-
 | Thing | Value |
 |---|---|
 | Account | Stacklineops@gmail.com's Account · `e6474e41044c5722ad57c3372ab7492e` (shared with ZedPath) |
-| Salon account (FORBIDDEN) | ID starts `c5cbb437...`; only its SHA-256 lives in the guard + leak scanner |
+| Salon account (FORBIDDEN) | ID starts `c5cbb437...`; only its SHA-256 lives in the leak scanner |
 | Staging | none (no online target is "safe to break" until a separate one exists) |
 | Production | Worker `ghosttape` (not created yet) → `ghosttape.teamkestrel.workers.dev`. The workers.dev subdomain is account-wide; renaming it would change ZedPath's URL, so never |
 | Names reserved for GhostTape | Worker `ghosttape`, D1 `ghosttape-history` (only if Phase E needs it), rate-limit namespaces 2001/2002 |
-| GitHub | `github.com/PraveenBanneka/ghosttape`, **PRIVATE** (created 2026-10-05 on "GO private"). The ONLY repo this project may push to; every push needs GO. Before ever going public: move the salon references out of public files |
+| GitHub | `github.com/PraveenBanneka/ghosttape`, **PRIVATE** (created 2026-10-05 on "GO private"). The ONLY repo this project pushes to. Before ever going public: move the salon references out of public files |
 | Git identity (repo-local) | `PraveenBanneka` / `279389974+PraveenBanneka@users.noreply.github.com` |
 
 Wrangler has ONE login for the whole laptop; the pinned `account_id` is what stops a deploy landing on the wrong
 account. The Cloudflare MCP server (plugin) has its **own** OAuth login, a second door: when its prompt appears,
 pick the Stacklineops account, never the salon one.
 
-## The guard: `.claude/hooks/ghosttape-guard.cjs` (PreToolUse, wired in `.claude/settings.json`)
-| Action | Result |
-|---|---|
-| `wrangler login/logout`, `cf auth` | always blocked |
-| salon folder, salon account id (commands, files, MCP input) | always blocked |
-| ZedPath folder | always blocked, except **Read** of its CLAUDE.md, `.claude/hooks/*`, `.githooks/*` |
-| ZedPath resource names with wrangler/cf/curl/gh/MCP, or in our wrangler config | always blocked, even with GO |
-| `limits.jsonc`, `limits.lock`, `lock-limits` (writes or any shell command naming them) | always blocked, even with GO |
-| Gmail, Calendar, Drive, Canva, Claude Docs, design-plugin MCP tools | always blocked (also `deny` rules in settings) |
-| editing the guard or `.claude/settings*.json` | needs GO |
-| deploy / publish / versions / secrets / `--remote` / remote D1 migrations / resource create-delete / `npm run deploy` / Cloudflare MCP non-search tools | blocked unless `wrangler.jsonc` pins exactly `e6474e41...`, names a `ghosttape...` worker, contains no ZedPath resource, **and** Praveen's latest message starts with **GO** |
-| `gh repo create PraveenBanneka/ghosttape` (once, no remote yet), `git push` to it, `gh api` writes to it | need GO |
-| any other repo: create/edit/delete/rename/remote/push | always blocked |
-| local dev, `whoami`, installs, local commits, tests | allowed |
-
-Tests: `bash .claude/hooks/test-guard.sh` (85 cases incl. pinned defaults, 0 failed on 2026-10-05). Re-run after
-editing the guard. The guard is `.cjs` (CommonJS whatever package.json says) and the hook runs
-`node guard || exit 2`, so a crashed guard BLOCKS every tool call (fail closed). The guard reads the whole command
-text, so a command that merely *mentions* a deploy is blocked too: put such text in a file (e.g. `git commit -F`).
+## Safety that stays (no prompts)
+The PreToolUse guard was removed on 2026-10-05 at Praveen's request (it is in git history at commit 1a13df3 if
+ever wanted back). What remains needs nobody's attention: the pinned `account_id`, the pre-push leak scanner,
+the limits ceiling check, and `deny` rules in `.claude/settings.json` for connectors this project doesn't use
+(Gmail, Calendar, Drive, Canva, Claude Docs, design plugins).
 
 **Wipe-bug check:** any scaffold that regenerates `wrangler.jsonc` (C3, templates) must keep `"name": "ghosttape"`
 and `"account_id": "e6474e41044c5722ad57c3372ab7492e"`. Diff it after every scaffold step.
@@ -110,12 +97,11 @@ Firmware secrets (Wi-Fi, HMAC key) go in `firmware/**/secrets.h` (git-ignored).
 ## Deploy sequence (runbook, every time)
 1. Build green; `npm test` passes.
 2. Verify the bundle locally (`wrangler dev`), key flow clicked through.
-3. `npx wrangler whoami` → confirm Stacklineops account, not `c5cbb437...` → show Praveen.
-4. Ask for GO. Praveen replies with a message starting `GO`.
-5. Deploy. Note the version ID.
-6. Verify LIVE on the public URL (a channel that can actually see it).
-7. Log version + URL + change in `WORKLOG.md`. Commit.
-Reversal: `npx wrangler rollback <previous-version-id>` (also GO-gated), written down BEFORE deploying.
+3. `npx wrangler whoami` → confirm Stacklineops account, not `c5cbb437...` (if salon: STOP, rule 1).
+4. Deploy (no GO needed, rule 7). Note the version ID.
+5. Verify LIVE on the public URL (a channel that can actually see it).
+6. Log version + URL + change in `WORKLOG.md`, commit, push, and report to Praveen.
+Reversal: `npx wrangler rollback <previous-version-id>`, written down BEFORE deploying.
 
 ## Web research safety protocol (adapted from ZedPath, 2026-10-05)
 Applies to ANY research that reads outside websites, by this session or a subagent.
@@ -136,6 +122,6 @@ Applies to ANY research that reads outside websites, by this session or a subage
 
 ## Hygiene
 - Journal: `WORKLOG.md`. Log meaningful work before ending a session; keep the state block current.
-- `npm test` = limits check + guard tests. Model/account unit tests (Vitest) join it in Phase A.
+- `npm test` (root) = limits ceiling check. App tests: `cd web && npm test` (Vitest: model, account, parser).
 - Lightweight Charts / KLineChart are Apache-2.0: keep attribution (TradingView logo if Lightweight Charts),
   credits line, and the licence + NOTICE in `THIRD_PARTY_NOTICES.md`.
