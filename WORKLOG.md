@@ -1,7 +1,7 @@
 # GhostTape work log
 
 ## State block (keep current; a cold session recovers from this)
-- **Phase:** Stage 0 done + **Phase 1 PASSED** (2026-10-05). Nothing deployed, no GitHub repo, no push.
+- **Phase:** Stage 0 done + **Phase 1 PASSED with radio verification** (2026-10-05). Nothing deployed, no GitHub repo, no push.
 - **Waiting on Praveen:** (1) run `node tools/lock-limits.cjs` once so `npm test` goes green;
   (2) reply `GO public` or `GO private` to create `PraveenBanneka/ghosttape` and push;
   (3) restart Claude in this folder so the guard hook goes live (it isn't loaded in the setup session).
@@ -41,3 +41,16 @@
   Bit balance 0.4987 over 96,000 bits; expected spread for fair bits is ±0.0016 (1 sigma), so -0.8 sigma: normal.
   This is a smoke test only; the real randomness proof is Phase D.
 - No HELLO line seen because the board booted before the port was opened (first seq was 154). Expected.
+
+## 2026-10-05 — Radio verification ("radio fix OK"), re-flashed, PASSED
+- Praveen spotted the gap: firmware requested Wi-Fi but never checked it, so a failed `WiFi.mode()` would have
+  streamed pseudo-random numbers silently. Also: the earlier bit-balance check can't tell true from pseudo-random.
+- Confirmed in core 3.3.0 source (`WiFiGeneric.cpp`): `WiFi.mode(WIFI_STA)` -> `esp_wifi_set_mode` ->
+  `esp_wifi_start()`; `setSleep(false)` -> `esp_wifi_set_ps(WIFI_PS_NONE)`. "Wi-Fi on" = radio powered, no network.
+- Firmware now verifies (mode STA, power save NONE, one completed scan), prints `GT1,INFO,...`/`GT1,ERR,...`,
+  sends NO packets unless verified, re-checks every 30 s, blue LED (GPIO 2) = verified. The old blue LED Praveen
+  remembered was a previous sketch driving GPIO 2, not a hardware Wi-Fi light.
+- `tools/phase1-check.ps1` now resets the board (RTS pulse) to catch boot lines and requires INFO + no ERR.
+- Result: **PASS**. `GT1,INFO,radio=on,ps=none,aps=5,up=153` (scan found 5 nearby networks = radio receiving);
+  6 INFO, 0 ERR; 1000/1000 packets, 0 gaps, 0 restarts, 6.25/s; 48,109 ones / 96,000 bits, z = +0.70.
+  The 8 "malformed" lines are the ESP32 ROM bootloader's reset banner, not packet corruption.

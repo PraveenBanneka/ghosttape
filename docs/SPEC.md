@@ -24,6 +24,12 @@
 > 7. Chart library: 1-hour spike on KLineChart (Apache-2.0, built-in drawings + indicators), falling back to
 >    TradingView Lightweight Charts + our own tools. Either way, keep the library's attribution and licence notices.
 > 8. The prototype's real CSE price panel is dropped.
+> 9. **Radio verification (approved "radio fix OK").** The firmware proves the true-random condition instead of
+>    assuming it: at boot it starts Wi-Fi STA, disables sleep and runs one Wi-Fi scan (a completed scan proves the
+>    radio is physically running); it re-checks mode + power-save every 30 s. New status lines, which 5-field
+>    packet parsers ignore: `GT1,INFO,radio=on,ps=none,aps=<networks found>,up=<s>` and
+>    `GT1,ERR,radio_off,<reason>`. **If verification fails, no packets are sent** (the chart freezes rather than run
+>    on pseudo-random numbers). Blue LED (GPIO 2) is on only while verified. The UI should show the radio status.
 
 GhostTape is a synthetic, tradable price chart whose every move comes from physical randomness: thermal and RF noise sampled by an ESP32. It looks and trades like a real terminal (candles, drawings, lots, SL/TP, margin), but it is pure noise by construction. Patterns traders "see" in it predict nothing, which is the point of the project.
 
