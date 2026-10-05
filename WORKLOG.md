@@ -81,3 +81,17 @@
   0.15/0.01, gap slippage, stop-out order, determinism, 8-tick roll, OHLC aggregation).
 - Design note: synthetic volume no longer uses an extra random draw (the old spec's 0.8+0.4u term) so every ESP32
   number is used exactly once by the price model; volume is deterministic from the price path.
+
+## 2026-10-05 — Phase B part 1 + GBP/JPY market clock
+- Terminal committed (09865b0): KLineChart 10, 1s-5m wall-clock candles, TradingView-style tool rail (own icons in TV
+  style; TV's artwork is proprietary so not copied) + favourites bar + magnet/lock/hide, Long/Short Position boxes
+  styled like TV (zones, open-P&L band, Target/Stop/centre tags) that place real demo orders and modify SL/TP on drag,
+  draggable SL/TP lines, one-click ticket with MT5 validation messages, Trade/History/Journal, proof drawer, Web Serial
+  ESP32 source (watchdog 400 ms, radio INFO/ERR), session save/restore, phone layout. Verified in headless Chrome
+  (agent-browser): box -> live position, wrong-side SL rejected with message, order lines, no page-level h-scroll.
+- THIRD_PARTY_NOTICES.md: KLineChart NOTICE includes TradingView Lightweight Charts, so both are credited (footer too).
+- Found: prototype parameters at 6.25 steps/s ran far too fast (100 -> 35 in 30 min; volatility drag ~x0.24/hour, 0.00
+  within a day). Asked Praveen; he chose "most like real fx charts (think GJ)". Simulated k = 234 / 47 / 450,000, then
+  chose k = 1,400,000: ~0.023%/1m, ~0.2%/h, ~1%/day, flat long-run. Start 190.000, 3 decimals. Synthetic volume scaled
+  by sqrt(k). Tests pin the prototype identity (k=1), the GJ defaults and a 12-hour volatility band: 35/35 pass.
+- Suggested to Praveen (his file): contract_size 1000 for ~$10/pip per lot. Account tests now use SPEC constants.

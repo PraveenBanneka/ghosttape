@@ -2,6 +2,7 @@
 import type { Account, Deal, JournalEntry, Position, Snapshot } from '../model/account';
 import type { Packet } from '../model/random';
 import type { FeedState } from '../entropy/source';
+import { PRICE_DECIMALS } from '../model/engine';
 
 export const $ = <T extends HTMLElement = HTMLElement>(id: string): T => {
   const el = document.getElementById(id);
@@ -11,7 +12,7 @@ export const $ = <T extends HTMLElement = HTMLElement>(id: string): T => {
 
 export const usd = (v: number, sign = false): string =>
   (v < 0 ? '-$' : sign && v > 0 ? '+$' : '$') + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const px = (v: number): string => v.toFixed(2);
+const px = (v: number): string => v.toFixed(PRICE_DECIMALS);
 const time = (ms: number): string => new Date(ms).toLocaleTimeString('en-GB', { hour12: false });
 const esc = (s: string): string => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 const cls = (v: number): string => (v > 0 ? 'up' : v < 0 ? 'down' : '');
@@ -80,11 +81,11 @@ export function renderHistory(deals: Deal[]): void {
   const rows = deals.slice(0, 300).map(d =>
     `<tr><td>#${d.ticket}</td><td class="${d.side === 'buy' ? 'up' : 'down'}">${d.side.toUpperCase()}</td><td>${d.lots.toFixed(2)}</td>` +
     `<td>${time(d.openTime)}</td><td>${px(d.openPrice)}</td><td>${time(d.closeTime)}</td><td>${px(d.closePrice)}</td>` +
-    `<td>${((d.closePrice - d.openPrice) * (d.side === 'buy' ? 1 : -1) * 100).toFixed(0)}</td><td>${reason[d.reason]}</td>` +
+    `<td>${((d.closePrice - d.openPrice) * (d.side === 'buy' ? 1 : -1) * 100).toFixed(1)}</td><td>${reason[d.reason]}</td>` +
     `<td class="${cls(d.slippage)}">${d.level === null ? '—' : d.slippage.toFixed(4)}</td><td class="${cls(d.pnl)}">${usd(d.pnl, true)}</td></tr>`);
   const total = deals.reduce((s, d) => s + d.pnl, 0);
   const wins = deals.filter(d => d.pnl > 0).length;
-  $('tab-history').innerHTML = `<table class="grid"><thead><tr><th>Ticket</th><th>Type</th><th>Volume</th><th>Open time</th><th>Open</th><th>Close time</th><th>Close</th><th>Points</th><th>Reason</th><th>Slippage</th><th>Profit</th></tr></thead><tbody>` +
+  $('tab-history').innerHTML = `<table class="grid"><thead><tr><th>Ticket</th><th>Type</th><th>Volume</th><th>Open time</th><th>Open</th><th>Close time</th><th>Close</th><th>Pips</th><th>Reason</th><th>Slippage</th><th>Profit</th></tr></thead><tbody>` +
     (rows.join('') || '<tr class="empty"><td colspan="11">No closed deals yet.</td></tr>') +
     (deals.length ? `<tr><td colspan="10">${deals.length} deals · ${wins} winners (${((wins / deals.length) * 100).toFixed(0)}%) · on pure noise, expect about half</td><td class="${cls(total)}">${usd(total, true)}</td></tr>` : '') +
     '</tbody></table>';

@@ -8,6 +8,8 @@
 // price, not at the level; the difference is reported as slippage. Below the stop-out level the position with
 // the largest loss is closed first, then the account is re-checked.
 
+import { PRICE_DECIMALS } from './engine';
+
 export interface AccountConfig {
   spread: number;
   leverage: number;
@@ -78,7 +80,7 @@ export interface Stops {
 
 const FIRST_TICKET = 1000001;
 const JOURNAL_MAX = 500;
-const fmt = (v: number): string => v.toFixed(2);
+const fmt = (v: number): string => v.toFixed(PRICE_DECIMALS);
 const usd = (v: number): string => (v < 0 ? '-$' : '+$') + Math.abs(v).toFixed(2);
 
 export class Account {

@@ -1,6 +1,7 @@
 // KLineChart wrapper: light TradingView-like styles, wall-clock periods (1s..5m), live bars via the v10 data loader.
 import { init, type Chart, type DeepPartial, type KLineData, type Period, type Styles } from 'klinecharts';
 import type { Candle, Timeframe } from '../model/aggregator';
+import { PRICE_DECIMALS } from '../model/engine';
 import { INDICATOR_CHOICES, registerCustomIndicators } from './indicators';
 import { registerCustomOverlays } from './overlays';
 
@@ -63,7 +64,7 @@ export class TapeChart {
     if (!chart) throw new Error('Chart failed to initialise');
     this.chart = chart;
     this.tf = tf;
-    chart.setSymbol({ ticker: 'GHOST/USD', pricePrecision: 2, volumePrecision: 0 });
+    chart.setSymbol({ ticker: 'GHOST/USD', pricePrecision: PRICE_DECIMALS, volumePrecision: 0 });
     chart.setOffsetRightDistance(180); // free space right of the last bar for position boxes and labels, like TradingView
     chart.setPeriod(PERIODS[tf]);
     chart.setDataLoader({

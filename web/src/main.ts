@@ -4,7 +4,7 @@ import type { Overlay } from 'klinecharts';
 import { LIMITS } from './config';
 import { Account, type AccountState, type Deal, type Side } from './model/account';
 import { MultiSeries, TIMEFRAMES, type Candle, type Timeframe } from './model/aggregator';
-import { TapeEngine, type EngineState, type Tick } from './model/engine';
+import { PRICE_DECIMALS, TapeEngine, type EngineState, type Tick } from './model/engine';
 import { REGIMES } from './model/regime';
 import type { Packet } from './model/random';
 import { cryptoPacket, DemoSource, PACKET_MS } from './entropy/demo';
@@ -20,9 +20,9 @@ import {
 } from './ui/terminal';
 
 const T = LIMITS.trading;
-const SESSION_KEY = 'gt.session.v1';
+const SESSION_KEY = 'gt.session.v2'; // v2: GBP/JPY-like preset (start 190, k = 1.4M)
 const PREFS_KEY = 'gt.prefs.v1';
-const DEMO_HISTORY_MIN = 30;   // instant labelled demo history so the chart isn't empty in demo mode
+const DEMO_HISTORY_MIN = 360;  // instant labelled demo history (6 h) so every timeframe has bars in demo mode
 const MAX_BARS = 1500;
 
 type Mode = 'demo' | 'esp32';
@@ -170,7 +170,7 @@ function restoreSession(s: SavedSession): void {
   tape.reload();
   for (const p of account.positions) drawPositionLines(p.ticket);
   for (const d of s.drawings) tape.chart.createOverlay({ name: d.name, points: d.points, extendData: d.extendData });
-  account.log(Date.now(), 'info', `Session restored (${s.mode === 'esp32' ? 'ESP32' : 'demo'}), resuming from ${engine.price.toFixed(2)}`);
+  account.log(Date.now(), 'info', `Session restored (${s.mode === 'esp32' ? 'ESP32' : 'demo'}), resuming from ${pf(engine.price)}`);
 }
 
 // ---------------------------------------------------------------- entropy sources
@@ -180,8 +180,8 @@ const events: SourceEvents = {
     const was = feedState;
     feedState = s;
     renderFeed(s, msg);
-    if (s === 'offline' && was !== 'offline') log('entropy-bad', `entropy lost, tape frozen at ${engine.price.toFixed(2)}`);
-    if (s === 'live' && (was === 'offline' || was === 'waiting' || was === 'radio_error')) log('entropy', `ESP32 packets flowing${was === 'offline' ? `, resuming from ${engine.price.toFixed(2)}` : ''}`);
+    if (s === 'offline' && was !== 'offline') log('entropy-bad', `entropy lost, tape frozen at ${pf(engine.price)}`);
+    if (s === 'live' && (was === 'offline' || was === 'waiting' || was === 'radio_error')) log('entropy', `ESP32 packets flowing${was === 'offline' ? `, resuming from ${pf(engine.price)}` : ''}`);
     scheduleRender();
   },
   status: (kind, detail, fields) => {
@@ -236,7 +236,7 @@ function placeOrder(side: Side): void {
   if (lots === null) { setOrderMsg('Enter a volume in lots.'); return; }
   const r = account.open(side, lots, { sl: readStop('sl'), tp: readStop('tp') }, mid(), Date.now());
   if (!r.ok) { setOrderMsg(r.error); scheduleRender(true); return; }
-  setOrderMsg(`#${r.value.ticket} ${side.toUpperCase()} ${lots.toFixed(2)} @ ${r.value.openPrice.toFixed(2)}`, true);
+  setOrderMsg(`#${r.value.ticket} ${side.toUpperCase()} ${lots.toFixed(2)} @ ${pf(r.value.openPrice)}`, true);
   $<HTMLInputElement>('sl').value = '';
   $<HTMLInputElement>('tp').value = '';
   drawPositionLines(r.value.ticket);
@@ -267,7 +267,7 @@ function onDealClosed(d: Deal): void {
   if (box) {
     const o = tape.chart.getOverlays({ id: box })[0] as Overlay<PosExt> | undefined;
     const what = { manual: 'Closed', sl: 'Stop hit', tp: 'Target hit', stopout: 'Stopped out' }[d.reason];
-    if (o) tape.chart.overrideOverlay({ id: box, lock: true, extendData: { ...o.extendData, state: 'closed', result: `#${d.ticket} ${what} @ ${d.closePrice.toFixed(2)} · ${usd(d.pnl, true)}` } });
+    if (o) tape.chart.overrideOverlay({ id: box, lock: true, extendData: { ...o.extendData, state: 'closed', result: `#${d.ticket} ${what} @ ${pf(d.closePrice)} · ${usd(d.pnl, true)}` } });
   }
   linked.delete(d.ticket);
   if (d.reason !== 'manual') toast(`${d.reason === 'tp' ? 'Take profit' : d.reason === 'sl' ? 'Stop loss' : 'Stop out'} #${d.ticket}: ${usd(d.pnl, true)}${d.level !== null ? ` (slippage ${d.slippage.toFixed(4)})` : ''}`);
@@ -299,7 +299,7 @@ hooks.onPositionDrawn = o => {
   // size the box from the recent range (like TradingView), stop = 1 unit, target = 2 units (R:R 2)
   const recent = series.series[tape.tf].bars.slice(-120);
   const span = recent.length ? Math.max(...recent.map(b => b.high)) - Math.min(...recent.map(b => b.low)) : entry * 0.02;
-  const d = Math.max(0.05, entry * 0.001, span * 0.08);
+  const d = Math.max(0.05, span * 0.12); // at least 5 pips
   tape.chart.overrideOverlay({
     id: o.id,
     points: [p0, { ...right, value: entry + dir * 2 * d }, { ...right, value: entry - dir * d }],
@@ -319,7 +319,7 @@ hooks.onPositionMoved = o => {
     const pos = account.positions.find(p => p.ticket === ext.ticket);
     if (pos) {
       const { target, stop } = boxPrices(o);
-      const r = account.modify(pos.ticket, { sl: round2(stop), tp: round2(target) }, mid(), Date.now());
+      const r = account.modify(pos.ticket, { sl: roundPx(stop), tp: roundPx(target) }, mid(), Date.now());
       if (!r.ok) toast(r.error);
       // the entry is where the order filled; keep it there whatever was dragged
       const p = o.points;
@@ -334,7 +334,7 @@ hooks.onLineMoved = o => {
   const { ticket, kind } = o.extendData;
   const pos = account.positions.find(p => p.ticket === ticket);
   if (!pos || kind === 'entry') return;
-  const v = round2(o.points[0].value!);
+  const v = roundPx(o.points[0].value!);
   const r = account.modify(ticket, { sl: kind === 'sl' ? v : pos.sl, tp: kind === 'tp' ? v : pos.tp }, mid(), Date.now());
   if (!r.ok) toast(r.error);
   tape.chart.overrideOverlay({ id: o.id, points: [{ ...o.points[0], value: kind === 'sl' ? pos.sl! : pos.tp! }] });
@@ -342,6 +342,8 @@ hooks.onLineMoved = o => {
 };
 
 const round2 = (v: number): number => Math.round(v * 100) / 100;
+const roundPx = (v: number): number => Number(v.toFixed(PRICE_DECIMALS));
+const pf = (v: number): string => v.toFixed(PRICE_DECIMALS);
 
 function showBoxAction(id: string): void {
   const o = tape.chart.getOverlays({ id })[0] as Overlay<PosExt> | undefined;
@@ -354,7 +356,7 @@ function showBoxAction(id: string): void {
   const { entry, target, stop } = boxPrices(o);
   const rr = Math.abs(target - entry) / Math.max(1e-9, Math.abs(entry - stop));
   if (ext.state === 'plan') {
-    el.innerHTML = `<span>${side === 'buy' ? 'Long' : 'Short'} · SL <b>${stop.toFixed(2)}</b> · TP <b>${target.toFixed(2)}</b> · R:R <b>${rr.toFixed(2)}</b></span>` +
+    el.innerHTML = `<span>${side === 'buy' ? 'Long' : 'Short'} · SL <b>${pf(stop)}</b> · TP <b>${pf(target)}</b> · R:R <b>${rr.toFixed(2)}</b></span>` +
       `<label>Lots <input id="boxLots" class="mono" type="number" min="${T.min_lots}" max="${T.max_lots}" step="0.01" value="${ext.lots.toFixed(2)}" style="width:64px"></label>` +
       `<button type="button" class="place ${side}" data-act="place">Place ${side.toUpperCase()} at market</button>` +
       `<button type="button" class="ghost" data-act="delete">Delete</button>`;
@@ -386,7 +388,7 @@ function placeFromBox(o: Overlay<PosExt>, side: Side): void {
   if (!tapeLive()) { toast('The tape is frozen. Reconnect the ESP32 first.'); return; }
   const fresh = tape.chart.getOverlays({ id: o.id })[0] as Overlay<PosExt>;
   const { target, stop } = boxPrices(fresh);
-  const r = account.open(side, fresh.extendData.lots, { sl: round2(stop), tp: round2(target) }, mid(), Date.now());
+  const r = account.open(side, fresh.extendData.lots, { sl: roundPx(stop), tp: roundPx(target) }, mid(), Date.now());
   if (!r.ok) { toast(r.error); scheduleRender(true); return; }
   const data = tape.chart.getDataList();
   const last = data[data.length - 1];
@@ -399,7 +401,7 @@ function placeFromBox(o: Overlay<PosExt>, side: Side): void {
     extendData: { state: 'live', ticket: r.value.ticket, lots: r.value.lots } satisfies PosExt,
   });
   linked.set(r.value.ticket, { lines: [], box: o.id });
-  toast(`#${r.value.ticket} ${side.toUpperCase()} ${r.value.lots.toFixed(2)} @ ${r.value.openPrice.toFixed(2)} · SL ${r.value.sl!.toFixed(2)} · TP ${r.value.tp!.toFixed(2)}`);
+  toast(`#${r.value.ticket} ${side.toUpperCase()} ${r.value.lots.toFixed(2)} @ ${pf(r.value.openPrice)} · SL ${pf(r.value.sl!)} · TP ${pf(r.value.tp!)}`);
   showBoxAction(o.id);
   scheduleRender(true);
 }
@@ -471,7 +473,7 @@ $('lotsUp').onclick = () => stepLots(0.01);
 $('lotsDown').onclick = () => stepLots(-0.01);
 $('lots').oninput = () => scheduleRender();
 $('leverage').textContent = `1:${T.leverage}`;
-$('spread').textContent = T.spread.toFixed(2);
+$('spread').textContent = pf(T.spread);
 $('btnReset').onclick = () => {
   for (const p of account.positions) { removeLines(p.ticket); const b = linked.get(p.ticket)?.box; if (b) tape.chart.removeOverlay({ id: b }); }
   linked.clear();

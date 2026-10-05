@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { gaussian, seededPackets, TWO32, u1, u2, uc } from '../src/model/random';
 import { REGIMES, rollRegime, switchProbability } from '../src/model/regime';
-import { STEPS_PER_ROLL, TapeEngine } from '../src/model/engine';
+import { DEFAULT_TIME_SCALE, PRICE_DECIMALS, STEPS_PER_ROLL, TapeEngine } from '../src/model/engine';
 import { CandleSeries, MultiSeries, syntheticVolume, TIMEFRAMES } from '../src/model/aggregator';
 import { parseLine, SeqTracker } from '../src/model/packet';
 import { LIMITS, parseJsonc } from '../src/config';
@@ -53,8 +53,8 @@ describe('TapeEngine', () => {
     const run = () => { const e = new TapeEngine(); const next = seededPackets(7); return Array.from({ length: 500 }, (_, i) => e.step(next(), i * 160).price); };
     expect(run()).toEqual(run());
   });
-  it('one packet = one GBM step with the prototype formula', () => {
-    const e = new TapeEngine();
+  it('one packet = one GBM step with the prototype formula (k = 1, start 100)', () => {
+    const e = new TapeEngine({ startPrice: 100, timeScale: 1 });
     const p = { seq: 0, a: 123456789, b: 987654321, c: 5 };
     const { mu, sigma } = REGIMES.expansion;
     const expected = 100 * Math.exp(mu - (sigma * sigma) / 2 + sigma * gaussian(p.a, p.b));
@@ -142,13 +142,28 @@ describe('owner limits (pinned defaults)', () => {
   });
 });
 
-describe('market-clock time scale (pending owner choice)', () => {
+describe('market-clock time scale (owner chose the GBP/JPY-like preset)', () => {
+  it('pins the GJ defaults: start 190.000, 3 decimals, k = 1,400,000', () => {
+    const e = new TapeEngine();
+    expect([e.price, e.timeScale, PRICE_DECIMALS, DEFAULT_TIME_SCALE]).toEqual([190, 1_400_000, 3, 1_400_000]);
+  });
+  it('GJ preset: ~0.2% hourly volatility, no runaway drift', () => {
+    const e = new TapeEngine();
+    const next = seededPackets(5);
+    const h: number[] = [];
+    let ph = e.price;
+    for (let i = 1; i <= 22500 * 12; i++) { e.step(next(), 0); if (i % 22500 === 0) { h.push(Math.log(e.price / ph)); ph = e.price; } }
+    const sd = Math.sqrt(h.reduce((s, x) => s + x * x, 0) / h.length) * 100;
+    expect(sd).toBeGreaterThan(0.08);
+    expect(sd).toBeLessThan(0.45);
+    expect(Math.abs(Math.log(e.price / 190))).toBeLessThan(0.05);
+  });
   it('k = 1 is the prototype formula; k scales drift by 1/k and volatility by 1/sqrt(k)', () => {
     const p = { seq: 0, a: 123456789, b: 987654321, c: 5 };
     const z = gaussian(p.a, p.b);
     const { mu, sigma } = REGIMES.expansion;
-    expect(new TapeEngine().step(p, 0).price).toBe(100 * Math.exp(mu - (sigma * sigma) / 2 + sigma * z));
+    expect(new TapeEngine({ startPrice: 100, timeScale: 1 }).step(p, 0).price).toBe(100 * Math.exp(mu - (sigma * sigma) / 2 + sigma * z));
     const k = 234, m = mu / k, s = sigma / Math.sqrt(k);
-    expect(new TapeEngine({ timeScale: k }).step(p, 0).price).toBeCloseTo(100 * Math.exp(m - (s * s) / 2 + s * z), 12);
+    expect(new TapeEngine({ startPrice: 100, timeScale: k }).step(p, 0).price).toBeCloseTo(100 * Math.exp(m - (s * s) / 2 + s * z), 12);
   });
 });

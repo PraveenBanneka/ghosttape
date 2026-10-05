@@ -1,7 +1,7 @@
 // Wall-clock candles for 1s / 10s / 30s / 1m / 5m, all fed by the same tick stream (SPEC addendum item 3).
 // A bucket with no ticks produces no candle: when entropy stops, the chart stops.
 
-import type { Tick } from './engine';
+import { DEFAULT_TIME_SCALE, type Tick } from './engine';
 
 export interface Timeframe {
   id: '1s' | '10s' | '30s' | '1m' | '5m';
@@ -23,13 +23,16 @@ export interface Candle {
   high: number;
   low: number;
   close: number;
-  /** synthetic, deterministic from the price path: ticks x (1 + 40 x |log return of the bar|), x100 */
+  /** synthetic, deterministic from the price path: ticks x (1 + 40 x |log return of the bar| x sqrt(k)), x100 */
   volume: number;
   ticks: number;
 }
 
+/** The bar's return is scaled by sqrt(k) (the market-clock factor) so volatile bars still get fat volume at FX-sized moves. */
+const VOLUME_RETURN_SCALE = Math.sqrt(DEFAULT_TIME_SCALE);
+
 export function syntheticVolume(ticks: number, open: number, close: number): number {
-  return Math.round(ticks * 100 * (1 + 40 * Math.abs(Math.log(close / open))));
+  return Math.round(ticks * 100 * (1 + 40 * Math.abs(Math.log(close / open)) * VOLUME_RETURN_SCALE));
 }
 
 export class CandleSeries {

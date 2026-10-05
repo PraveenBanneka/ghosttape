@@ -4,6 +4,7 @@
 //    turned into a real demo order; a live box tracks the position and dragging its stop/target modifies SL/TP.
 //  - gtPriceLine: entry / SL / TP lines of positions opened from the order panel; SL/TP lines are draggable.
 import { registerOverlay, type Overlay, type OverlayFigure, type Point } from 'klinecharts';
+import { PRICE_DECIMALS } from '../model/engine';
 
 export type PositionKind = 'longPosition' | 'shortPosition';
 export interface PosExt {
@@ -51,7 +52,8 @@ const label = (x: number, y: number, text: string, bg: string, baseline: CanvasT
 });
 
 const num = (v: number): string => (v < 0 ? '-' : '') + Math.abs(v).toFixed(2);
-const TICK = 0.01; // price shown to 2 decimals, so 1 tick = 0.01
+const pxd = (v: number): string => (v < 0 ? '-' : '') + Math.abs(v).toFixed(PRICE_DECIMALS);
+const TICK = 10 ** -PRICE_DECIMALS; // 0.001 with 3 decimals (TradingView counts ticks)
 
 function positionFigures(kind: PositionKind, o: Overlay<PosExt>, cs: { x: number; y: number }[]): OverlayFigure[] {
   if (cs.length < 3 || o.points.length < 3) return [];
@@ -80,8 +82,8 @@ function positionFigures(kind: PositionKind, o: Overlay<PosExt>, cs: { x: number
   }
   figs.push({ type: 'line', attrs: { coordinates: [{ x: x0, y: yE }, { x: x1, y: yE }] }, styles: { style: 'solid', color: ext.state === 'live' ? C.accent : '#9598a1', size: ext.state === 'live' ? 2 : 1 } });
 
-  const tgtText = `Target: ${num(reward)} (${((reward / entry) * 100).toFixed(2)}%) ${Math.round(reward / TICK)}, Amount: ${num(reward * qty)}`;
-  const stpText = `Stop: ${num(risk)} (${((risk / entry) * 100).toFixed(2)}%) ${Math.round(risk / TICK)}, Amount: ${num(risk * qty)}`;
+  const tgtText = `Target: ${pxd(reward)} (${((reward / entry) * 100).toFixed(2)}%) ${Math.round(reward / TICK)}, Amount: ${num(reward * qty)}`;
+  const stpText = `Stop: ${pxd(risk)} (${((risk / entry) * 100).toFixed(2)}%) ${Math.round(risk / TICK)}, Amount: ${num(risk * qty)}`;
   const tAbove = yT < yE;
   figs.push(label(xm, yT + (tAbove ? -3 : 3), tgtText, closed ? C.muted : C.up, tAbove ? 'bottom' : 'top'));
   figs.push(label(xm, yS + (tAbove ? 3 : -3), stpText, closed ? C.muted : C.down, tAbove ? 'top' : 'bottom'));
@@ -110,7 +112,7 @@ function syncPoints(kind: PositionKind, points: Array<Partial<Point>>, moved: nu
   const src = moved === 2 ? points[2] : points[1];
   const dst = moved === 2 ? points[1] : points[2];
   if (moved !== 0) { dst.timestamp = src.timestamp; dst.dataIndex = src.dataIndex; }
-  const entry = points[0].value!, gap = Math.max(0.01, entry * 0.0005);
+  const entry = points[0].value!, gap = 2 * TICK;
   if (kind === 'longPosition') {
     points[1].value = Math.max(points[1].value!, entry + gap);
     points[2].value = Math.min(points[2].value!, entry - gap);
@@ -155,7 +157,7 @@ export function registerCustomOverlays(): void {
       const value = overlay.points[0].value ?? 0;
       return [
         { type: 'line', attrs: { coordinates: [{ x: 0, y: c.y }, { x: bounding.width, y: c.y }] }, styles: { style: e.kind === 'entry' ? 'dashed' : 'solid', color, size: 1, dashedValue: [4, 3] } },
-        { type: 'text', ignoreEvent: true, attrs: { x: bounding.width - 70, y: c.y - 3, text: `#${e.ticket} ${e.kind === 'entry' ? e.side.toUpperCase() : e.kind.toUpperCase()} ${value.toFixed(2)}${e.kind === 'entry' ? '' : ' ⇕'}`, align: 'right', baseline: 'bottom' },
+        { type: 'text', ignoreEvent: true, attrs: { x: bounding.width - 70, y: c.y - 3, text: `#${e.ticket} ${e.kind === 'entry' ? e.side.toUpperCase() : e.kind.toUpperCase()} ${value.toFixed(PRICE_DECIMALS)}${e.kind === 'entry' ? '' : ' ⇕'}`, align: 'right', baseline: 'bottom' },
           styles: { color: '#ffffff', backgroundColor: color, size: 11, family: 'Roboto Mono, monospace', borderRadius: 2, paddingLeft: 4, paddingRight: 4, paddingTop: 2, paddingBottom: 2 } },
       ];
     },

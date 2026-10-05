@@ -24,6 +24,11 @@
 > 7. Chart library: 1-hour spike on KLineChart (Apache-2.0, built-in drawings + indicators), falling back to
 >    TradingView Lightweight Charts + our own tools. Either way, keep the library's attribution and licence notices.
 > 8. The prototype's real CSE price panel is dropped.
+> 10. **Market clock = GBP/JPY-like preset** (Praveen: "most like real fx charts, think GJ"). Same Box-Muller/GBM/regime
+>    maths, run on a slower clock: per-step mu/k and sigma/sqrt(k) with k = 1,400,000, start price 190.000, 3 decimals
+>    (1 pip = 0.01). Simulated at 6.25 packets/s: ~0.023% per 1-minute candle (~4 pips), ~0.2% per hour, ~1% per day,
+>    no meaningful long-run drift (k = 1 drifted to 0 within a day). Synthetic volume scales the bar return by sqrt(k).
+>    Optional (owner): `contract_size` 1000 in limits.jsonc gives ~$10/pip per lot.
 > 9. **Radio verification (approved "radio fix OK").** The firmware proves the true-random condition instead of
 >    assuming it: at boot it starts Wi-Fi STA, disables sleep and runs one Wi-Fi scan (a completed scan proves the
 >    radio is physically running); it re-checks mode + power-save every 30 s. New status lines, which 5-field

@@ -5,7 +5,9 @@ import { gaussian, uc, type Packet } from './random';
 import { REGIMES, rollRegime, type Regime } from './regime';
 
 export const STEPS_PER_ROLL = 8;
-export const START_PRICE = 100;
+/** GBP/JPY-like presentation (Praveen, 2026-10-05: "most like real fx charts, think GJ"). */
+export const START_PRICE = 190;
+export const PRICE_DECIMALS = 3;
 
 export interface Tick {
   /** wall-clock ms when the packet arrived */
@@ -29,10 +31,12 @@ export interface EngineState {
 }
 
 /**
- * Market-clock scale k (pending Praveen's decision, 2026-10-05): per-step drift mu/k and volatility sigma/sqrt(k),
- * i.e. the same GBM run on a slower clock. k = 1 reproduces the prototype exactly.
+ * Market-clock scale k: per-step drift mu/k and volatility sigma/sqrt(k), i.e. the same GBM on a slower clock.
+ * k = 1 reproduces the prototype exactly. Praveen chose the GBP/JPY-like preset (2026-10-05): k = 1,400,000 gives
+ * about 0.023% per 1-minute candle, 0.2% per hour and ~1% per day at 6.25 packets/s (simulated, see WORKLOG),
+ * with no meaningful long-run drift. Expansion ~ a calm session, recession ~ about twice as volatile.
  */
-export const DEFAULT_TIME_SCALE = 1;
+export const DEFAULT_TIME_SCALE = 1_400_000;
 
 export class TapeEngine {
   price: number;

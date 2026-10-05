@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { Account, type AccountConfig } from '../src/model/account';
-import { LIMITS } from '../src/config';
-
-const CFG: AccountConfig = { ...LIMITS.trading, spread: 0 };
+// SPEC section 6 constants, pinned here so the maths tests don't depend on Praveen's limits.jsonc choices
+// (e.g. a larger contract_size for GBP/JPY-like dollar P&L).
+const CFG: AccountConfig = { spread: 0, leverage: 100, contract_size: 100, start_balance: 10000, min_lots: 0.01, max_lots: 5, margin_call_level_pct: 100, stop_out_level_pct: 50 };
 const withSpread = (spread: number): AccountConfig => ({ ...CFG, spread });
 const none = { sl: null, tp: null };
 
@@ -86,7 +86,7 @@ describe('SL/TP per tick with gap slippage (SPEC acceptance)', () => {
     expect(d.level).toBe(99.8);
     expect(d.slippage).toBeCloseTo(-0.3, 10);
     expect(d.pnl).toBeCloseTo(-50, 10);
-    expect(a.journal[0].text).toMatch(/SL HIT #1000001 .*level 99\.80, slippage -0\.3000/);
+    expect(a.journal[0].text).toMatch(/SL HIT #1000001 .*level 99\.800, slippage -0\.3000/);
   });
   it('TP for a SELL fills at the first crossing tick (positive slippage possible)', () => {
     const a = new Account(CFG);
