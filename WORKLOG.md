@@ -169,3 +169,10 @@
   all 29 indicators (KLineChart built-ins + our ATR and EMA bands); (3) "it should keep the real time gap": on resume,
   missed buckets get flat gap candles at the frozen price with zero volume (up to 900 per timeframe; longer outages jump).
 - Tests: web 56/56 (new gap tests), relay 36/36, worker tsc clean. Browser-checked: legend x removes ATR + saves pref.
+
+## 2026-10-05 — Public URL switched OFF (Praveen: "off")
+- Explained first that usage was ~0 (static assets free; online mode off). Praveen chose off.
+- wrangler.jsonc: "workers_dev": false, "preview_urls": false; deployed 2ade5af8-b7c7-4d09-8160-d770ae8bf7f6
+  ("No targets deployed"). Verified: https://ghosttape.teamkestrel.workers.dev/ and /api/state -> 404 (Cloudflare
+  error 1042). Nothing deleted: the Worker, its Durable Object and the last good build stay in the account.
+- To bring it back with the same link: set both flags to true, `npx wrangler deploy` (last public version: 34471865).
