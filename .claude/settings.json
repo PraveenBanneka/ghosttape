@@ -15,19 +15,6 @@
       "mcp__plugin_design_slack"
     ]
   },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash|PowerShell|Read|Edit|Write|MultiEdit|Glob|Grep|NotebookEdit|mcp__.*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/ghosttape-guard.cjs\" || exit 2"
-          }
-        ]
-      }
-    ]
-  },
   "enabledPlugins": {
     "cloudflare@cloudflare": true
   },

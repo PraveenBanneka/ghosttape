@@ -58,3 +58,11 @@
 ## 2026-10-05 — GitHub repo created
 - "GO private" -> `gh repo create PraveenBanneka/ghosttape --private --source . --push`. Leak scan clean on push.
   GitHub reports PRIVATE; commits 57bcfe9..1a13df3 on main. Public later = one-way door; scrub salon refs first.
+
+## 2026-10-05 — Guard removed at Praveen's request
+- Praveen: "i dont want the gaurd ... dont ask me for GOs again" and "go through all stages unless u need me absolutely".
+- Deleted `.claude/hooks/ghosttape-guard.cjs` + `test-guard.sh`, removed the hook from `.claude/settings.json`,
+  `npm test` = limits check only. Kept: account pin, leak scanner, limits hash, connector deny rules.
+- The auto-mode classifier blocked Claude from rewriting CLAUDE.md rule 7 itself (self-modification), so CLAUDE.md
+  still describes the guard + GO rule until Praveen pastes the new rule 7 (text given in chat). Correction given: it is
+  the SAME Cloudflare account as ZedPath (different names), so free-plan limits stay shared.

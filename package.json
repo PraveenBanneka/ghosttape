@@ -3,9 +3,8 @@
   "private": true,
   "description": "GhostTape: a synthetic, tradable price tape driven by ESP32 hardware randomness. Demo account only.",
   "scripts": {
-    "test": "npm run check:limits && npm run test:guard",
+    "test": "npm run check:limits",
     "check:limits": "node tools/check-limits.cjs",
-    "test:guard": "bash .claude/hooks/test-guard.sh",
     "leak-scan": "node .githooks/leak-scan.cjs --all"
   },
   "devDependencies": {
