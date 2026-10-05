@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "deny": [
+      "mcp__claude_ai_Gmail",
+      "mcp__claude_ai_Google_Calendar",
+      "mcp__claude_ai_Google_Drive",
+      "mcp__claude_ai_Canva",
+      "mcp__claude_ai_Claude_Docs",
+      "mcp__plugin_design_asana",
+      "mcp__plugin_design_atlassian",
+      "mcp__plugin_design_figma",
+      "mcp__plugin_design_intercom",
+      "mcp__plugin_design_linear",
+      "mcp__plugin_design_notion",
+      "mcp__plugin_design_slack"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell|Read|Edit|Write|MultiEdit|Glob|Grep|NotebookEdit|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/ghosttape-guard.cjs\" || exit 2"
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "cloudflare@cloudflare": true
+  },
+  "extraKnownMarketplaces": {
+    "cloudflare": {
+      "source": {
+        "source": "github",
+        "repo": "cloudflare/skills"
+      }
+    }
+  }
+}

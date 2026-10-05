@@ -1,0 +1,21 @@
+# entropy captures (large, regenerable)
+entropy.bin
+*.bin
+
+# secrets: Wi-Fi + device HMAC key live in firmware/**/secrets.h (never committed)
+firmware/**/secrets.h
+.dev.vars
+.dev.vars.*
+.env
+.env.*
+!.env.example
+
+# build + tooling
+node_modules/
+.wrangler/
+dist/
+*.log
+.DS_Store
+
+# per-machine Claude settings (project rules live in .claude/settings.json)
+.claude/settings.local.json

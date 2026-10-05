@@ -1,0 +1,929 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>GhostTape</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f3f1ea; --panel:#ffffff; --ink:#1b1c1e; --ink-dim:#5b5c60;
+    --line:#dedad0; --accent:#5b6cff; --accent-bg:#e7e9ff;
+    --green:#0e9f6e; --green-bg:#e3f7ee;
+    --red:#e0403a; --red-bg:#fdeceb;
+    --amber:#a8670a; --amber-bg:#fbf0db;
+    --code-bg:#f8f7f2;
+    --shadow: 0 1px 2px rgba(0,0,0,.08), 0 6px 18px -6px rgba(0,0,0,.14);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0b0c0f; --panel:#131418; --ink:#e7e7ea; --ink-dim:#8a8c94;
+      --line:#23252b; --accent:#7c8bff; --accent-bg:#1c1f3a;
+      --green:#2fd490; --green-bg:#0e2420;
+      --red:#ff5b53; --red-bg:#2a1414;
+      --amber:#f0b04a; --amber-bg:#2a2010;
+      --code-bg:#0f1013;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 18px -6px rgba(0,0,0,.6);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0b0c0f; --panel:#131418; --ink:#e7e7ea; --ink-dim:#8a8c94;
+    --line:#23252b; --accent:#7c8bff; --accent-bg:#1c1f3a;
+    --green:#2fd490; --green-bg:#0e2420;
+    --red:#ff5b53; --red-bg:#2a1414;
+    --amber:#f0b04a; --amber-bg:#2a2010;
+    --code-bg:#0f1013;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 18px -6px rgba(0,0,0,.6);
+    color-scheme: dark;
+  }
+  *{box-sizing:border-box;}
+  body{ background:var(--bg); color:var(--ink); font-family:"Roboto",Arial,sans-serif; margin:0; }
+  .mono{ font-family:"Roboto Mono",ui-monospace,monospace; }
+  .wrap{ max-width:800px; margin:0 auto; padding:28px 18px 50px; }
+
+  .top{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:6px; flex-wrap:wrap; }
+  .brand{ display:flex; align-items:center; gap:10px; font-weight:700; font-size:18px; }
+  .brand .dot{ width:10px; height:10px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 4px var(--accent-bg); }
+  .badge{ font-family:"Roboto Mono",monospace; font-size:10.5px; color:var(--ink-dim); background:var(--panel); border:1px solid var(--line); padding:3px 9px; border-radius:8px; }
+
+  .price-row{ display:flex; align-items:baseline; gap:12px; margin:14px 0 12px; flex-wrap:wrap; }
+  .price{ font-family:"Roboto Mono",monospace; font-size:clamp(1.6rem,6vw,2.1rem); font-weight:700; font-variant-numeric:tabular-nums; }
+  .chg{ font-family:"Roboto Mono",monospace; font-size:13.5px; font-weight:600; padding:3px 9px; border-radius:8px; }
+  .chg.up{ color:var(--green); background:var(--green-bg); }
+  .chg.down{ color:var(--red); background:var(--red-bg); }
+  .pair{ color:var(--ink-dim); font-size:13px; font-family:"Roboto Mono",monospace; }
+  .regime{ font-family:"Roboto Mono",monospace; font-size:11.5px; font-weight:700; padding:4px 10px; border-radius:8px; letter-spacing:.02em; }
+  .regime.expansion{ background:var(--green-bg); color:var(--green); }
+  .regime.recession{ background:var(--red-bg); color:var(--red); }
+
+  /* entropy source bar */
+  .source{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-bottom:10px; }
+  .feed-chip{ display:inline-flex; align-items:center; gap:7px; font-family:"Roboto Mono",monospace; font-size:11.5px; font-weight:700; padding:5px 10px; border-radius:8px; letter-spacing:.02em; }
+  .feed-chip .pip{ width:8px; height:8px; border-radius:50%; background:currentColor; }
+  .feed-chip.demo{ background:var(--amber-bg); color:var(--amber); }
+  .feed-chip.live{ background:var(--green-bg); color:var(--green); }
+  .feed-chip.live .pip{ animation:pulse 1.2s infinite; }
+  .feed-chip.offline{ background:var(--red-bg); color:var(--red); }
+  .feed-chip.waiting{ background:var(--accent-bg); color:var(--accent); }
+  .feed-stats{ font-family:"Roboto Mono",monospace; font-size:11px; color:var(--ink-dim); font-variant-numeric:tabular-nums; }
+  .source .spacer{ flex:1; }
+  .source-msg{ flex-basis:100%; font-size:12px; color:var(--ink-dim); line-height:1.5; }
+  .source-msg:empty{ display:none; }
+
+  .rate-wrap{ display:flex; align-items:center; gap:8px; font-family:"Roboto Mono",monospace; font-size:11.5px; color:var(--ink-dim); }
+  .rate-wrap input[type=range]{ width:110px; accent-color:var(--accent); }
+  .rate-wrap b{ color:var(--ink); min-width:34px; display:inline-block; }
+
+  .ticker{ margin-top:10px; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:8px 12px; font-family:"Roboto Mono",monospace; font-size:10.5px; color:var(--ink-dim); max-height:70px; overflow-y:auto; }
+  .ticker div{ padding:2px 0; }
+  .ticker .shift{ color:var(--accent); font-weight:600; }
+
+  .rawfeed{ margin-top:10px; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:8px 12px; font-family:"Roboto Mono",monospace; font-size:10.5px; color:var(--ink-dim); height:132px; overflow:hidden; font-variant-numeric:tabular-nums; }
+  .rawfeed .row{ display:flex; gap:14px; padding:1.5px 0; white-space:nowrap; }
+  .rawfeed .row:first-child{ color:var(--ink); }
+  .rawfeed .seq{ min-width:62px; color:var(--accent); }
+  .rawfeed .empty{ padding-top:44px; text-align:center; }
+
+  .real-panel{ margin-top:16px; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px 18px; }
+  .real-panel .rtag{ font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--green); margin-bottom:8px; display:block; }
+  .real-row{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:6px 0; border-top:1px solid var(--line); font-family:"Roboto Mono",monospace; font-size:12px; flex-wrap:wrap; }
+  .real-row:first-of-type{ border-top:none; }
+  .real-row .d{ color:var(--ink-dim); }
+  .real-row .chg-r.up, .chg-r.up{ color:var(--green); } .real-row .chg-r.down, .chg-r.down{ color:var(--red); }
+  .real-note{ font-size:11px; color:var(--ink-dim); margin-top:10px; line-height:1.6; }
+  .real-note a{ color:var(--ink-dim); }
+
+  .toolbar{ display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap; }
+  .tool{ font-family:"Roboto Mono",monospace; font-size:11.5px; font-weight:600; background:var(--panel); border:1px solid var(--line); color:var(--ink-dim); border-radius:9px; padding:7px 11px; cursor:pointer; }
+  .tool:hover{ border-color:var(--accent); color:var(--accent); }
+  .tool.active{ border-color:var(--accent); color:var(--accent); background:var(--accent-bg); }
+  .tool.connect{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .tool.connect:hover{ color:#fff; filter:brightness(1.08); }
+  .tool:focus-visible, .btn:focus-visible, .btn-trade:focus-visible, .closex:focus-visible, summary:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.25;} }
+  @media (prefers-reduced-motion: reduce){ .feed-chip.live .pip{ animation:none; } }
+  .toolbar .spacer{ flex:1; }
+
+  .acct-strip{ display:flex; gap:18px; flex-wrap:wrap; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:10px 14px; margin-bottom:10px; }
+  .acct-strip .item{ display:flex; flex-direction:column; gap:2px; }
+  .acct-strip .lbl{ font-size:9.5px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.05em; font-family:"Roboto Mono",monospace; }
+  .acct-strip .val{ font-family:"Roboto Mono",monospace; font-size:13px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .acct-strip .val.up{ color:var(--green); } .acct-strip .val.down{ color:var(--red); }
+  .margin-warn{ background:var(--red-bg); color:var(--red); padding:8px 12px; border-radius:10px; font-family:"Roboto Mono",monospace; font-size:11.5px; font-weight:700; margin-bottom:10px; }
+
+  .order-ticket{ display:flex; gap:10px; align-items:end; flex-wrap:wrap; margin-bottom:10px; }
+  .order-ticket label{ display:flex; flex-direction:column; gap:4px; font-size:9.5px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.04em; font-family:"Roboto Mono",monospace; }
+  .order-ticket input[type=number]{ width:78px; font-family:"Roboto Mono",monospace; font-size:12.5px; padding:7px 9px; border:1px solid var(--line); border-radius:9px; background:var(--bg); color:var(--ink); }
+  .order-ticket input[type=number]:focus{ outline:1.5px solid var(--accent); }
+  .buysell{ display:flex; gap:8px; margin-left:auto; }
+  .btn-trade{ font-family:"Roboto Mono",monospace; font-weight:700; font-size:13px; border:none; border-radius:10px; padding:10px 20px; cursor:pointer; color:#fff; }
+  .btn-trade.buy{ background:var(--green); }
+  .btn-trade.sell{ background:var(--red); }
+
+  .pos-section{ margin-top:14px; }
+  .pos-section h4{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-dim); font-family:"Roboto Mono",monospace; margin:0 0 8px; }
+  .table-scroll{ overflow-x:auto; }
+  table.postable{ width:100%; border-collapse:collapse; font-family:"Roboto Mono",monospace; font-size:11px; font-variant-numeric:tabular-nums; }
+  table.postable th, table.postable td{ padding:6px 8px; border-top:1px solid var(--line); text-align:right; white-space:nowrap; }
+  table.postable th{ color:var(--ink-dim); font-weight:600; font-size:9.5px; text-transform:uppercase; }
+  table.postable th:first-child, table.postable td:first-child{ text-align:left; }
+  table.postable .pnl.up{ color:var(--green); } table.postable .pnl.down{ color:var(--red); }
+  table.postable .empty td{ color:var(--ink-dim); text-align:center; padding:14px 8px; }
+  .closex{ background:none; border:1px solid var(--line); border-radius:7px; cursor:pointer; color:var(--ink-dim); font-size:10.5px; padding:3px 9px; font-family:"Roboto Mono",monospace; }
+  .closex:hover{ border-color:var(--accent); color:var(--accent); }
+
+  .panel{ position:relative; background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:14px; box-shadow:var(--shadow); }
+  .panel svg{ display:block; width:100%; height:auto; cursor:default; }
+  .panel svg.drawing{ cursor:crosshair; }
+  .freeze{ position:absolute; inset:14px; display:flex; align-items:center; justify-content:center; pointer-events:none; }
+  .freeze span{ background:var(--red-bg); color:var(--red); border:1.5px solid var(--red); font-family:"Roboto Mono",monospace; font-weight:700; font-size:12.5px; letter-spacing:.05em; text-transform:uppercase; padding:10px 16px; border-radius:10px; text-align:center; }
+
+  .controls{ display:flex; gap:10px; align-items:center; margin-top:14px; flex-wrap:wrap; }
+  .btn{ font-family:"Roboto",sans-serif; font-size:12.5px; font-weight:600; border:none; border-radius:20px; padding:9px 15px; cursor:pointer; }
+  .btn.primary{ background:var(--accent); color:#fff; }
+  .btn.ghost{ background:var(--panel); color:var(--ink); border:1px solid var(--line); }
+
+  .proof{ margin-top:14px; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; font-family:"Roboto Mono",monospace; font-size:10.5px; color:var(--ink-dim); line-height:1.7; word-break:break-all; }
+  .proof b{ color:var(--ink); }
+
+  /* build spec */
+  .spec{ margin-top:28px; border-top:1px solid var(--line); padding-top:22px; }
+  .spec h2{ font-size:17px; margin:0 0 6px; text-wrap:balance; }
+  .spec > p{ font-size:13px; color:var(--ink-dim); line-height:1.6; margin:0 0 14px; max-width:65ch; }
+  .stack{ display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:8px; margin-bottom:14px; }
+  .stack div{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:9px 11px; min-width:0; }
+  .stack .k{ font-family:"Roboto Mono",monospace; font-size:9.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-dim); }
+  .stack .v{ font-size:12.5px; font-weight:600; margin-top:3px; line-height:1.35; }
+  details.file{ background:var(--panel); border:1px solid var(--line); border-radius:12px; margin-bottom:10px; overflow:hidden; }
+  details.file summary{ display:flex; align-items:center; gap:10px; padding:11px 14px; cursor:pointer; font-family:"Roboto Mono",monospace; font-size:12px; font-weight:600; list-style:none; }
+  details.file summary::-webkit-details-marker{ display:none; }
+  details.file summary .caret{ transition:transform .15s; color:var(--ink-dim); }
+  details.file[open] summary .caret{ transform:rotate(90deg); }
+  details.file summary .sub{ font-weight:400; color:var(--ink-dim); font-size:11px; }
+  details.file summary .spacer{ flex:1; }
+  .copy{ font-family:"Roboto Mono",monospace; font-size:11px; font-weight:600; border:1px solid var(--line); background:var(--bg); color:var(--ink); border-radius:8px; padding:5px 10px; cursor:pointer; }
+  .copy.done{ color:var(--green); border-color:var(--green); }
+  pre.code{ margin:0; border-top:1px solid var(--line); background:var(--code-bg); padding:14px; max-height:420px; overflow:auto; font-family:"Roboto Mono",monospace; font-size:11.5px; line-height:1.55; color:var(--ink); white-space:pre; }
+
+  footer{ text-align:center; font-size:11.5px; color:var(--ink-dim); margin-top:22px; line-height:1.6; max-width:60ch; margin-inline:auto; }
+  @media (max-width:520px){ .buysell{ margin-left:0; } }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <div class="top">
+    <div class="brand"><span class="dot"></span> GhostTape</div>
+    <span class="badge">synthetic tape, not real market data</span>
+  </div>
+
+  <div class="price-row">
+    <span class="pair">GHOST/USD</span>
+    <span class="price mono" id="priceNow">100.00</span>
+    <span class="chg" id="chgNow">+0.00%</span>
+    <span class="regime expansion" id="regimeBadge">Regime: Expansion</span>
+  </div>
+
+  <div class="source" aria-live="polite">
+    <span class="feed-chip demo" id="feedChip"><span class="pip"></span><span id="feedLabel">DEMO · browser entropy, not hardware</span></span>
+    <span class="feed-stats" id="feedStats">0 packets</span>
+    <span class="spacer"></span>
+    <button class="tool connect" id="btnConnect" type="button">Connect ESP32</button>
+    <button class="tool" id="btnDemo" type="button">Demo entropy</button>
+    <div class="source-msg" id="sourceMsg"></div>
+  </div>
+
+  <div class="acct-strip">
+    <div class="item"><span class="lbl">Balance</span><span class="val mono" id="acctBalance">$10,000.00</span></div>
+    <div class="item"><span class="lbl">Equity</span><span class="val mono" id="acctEquity">$10,000.00</span></div>
+    <div class="item"><span class="lbl">Floating P&amp;L</span><span class="val mono" id="acctFloating">$0.00</span></div>
+    <div class="item"><span class="lbl">Margin</span><span class="val mono" id="acctMargin">$0.00</span></div>
+    <div class="item"><span class="lbl">Free Margin</span><span class="val mono" id="acctFreeMargin">$10,000.00</span></div>
+    <div class="item"><span class="lbl">Margin Level</span><span class="val mono" id="acctMarginLevel">—</span></div>
+  </div>
+  <div class="margin-warn" id="marginWarn" hidden></div>
+
+  <div class="toolbar">
+    <button class="tool" id="toolTrend" type="button">＼ Trendline</button>
+    <button class="tool" id="toolHline" type="button">— H-Line</button>
+    <button class="tool" id="btnClear" type="button">Clear drawings</button>
+  </div>
+
+  <div class="order-ticket">
+    <label>Lots <input type="number" id="lotsInput" value="0.10" min="0.01" max="5" step="0.01"></label>
+    <label>Stop loss <input type="number" id="slInput" placeholder="none" step="0.01"></label>
+    <label>Take profit <input type="number" id="tpInput" placeholder="none" step="0.01"></label>
+    <div class="buysell">
+      <button class="btn-trade sell" id="btnSell" type="button">SELL</button>
+      <button class="btn-trade buy" id="btnBuy" type="button">BUY</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <svg id="chart" viewBox="0 0 700 300" preserveAspectRatio="none" role="img" aria-label="GhostTape candlestick chart"></svg>
+    <div class="freeze" id="freeze" hidden><span>ESP32 disconnected · no entropy · no candles</span></div>
+  </div>
+
+  <div class="pos-section">
+    <h4>Entropy feed · one packet per price step</h4>
+    <div class="rawfeed" id="rawfeed"></div>
+  </div>
+
+  <div class="controls">
+    <button class="btn primary" id="btnNew" type="button">Generate new session</button>
+    <div class="rate-wrap"><label for="rateSlider">central bank rate</label> <b id="rateVal">5.0%</b><input type="range" id="rateSlider" min="0" max="15" step="0.5" value="5"></div>
+    <button class="btn ghost" id="btnProof" type="button">Show entropy proof</button>
+  </div>
+  <div class="proof" id="proof" hidden></div>
+
+  <div class="pos-section">
+    <h4>Open positions</h4>
+    <div class="table-scroll">
+      <table class="postable">
+        <thead><tr><th>Ticket</th><th>Type</th><th>Lots</th><th>Entry</th><th>S/L</th><th>T/P</th><th>Current</th><th>P&amp;L</th><th></th></tr></thead>
+        <tbody id="posBody"><tr class="empty"><td colspan="9">No open positions. Place a BUY or SELL above.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="pos-section">
+    <h4>Journal</h4>
+    <div class="ticker" id="ticker"></div>
+  </div>
+
+  <div class="real-panel">
+    <span class="rtag">● Real: CSE All Share Price Index, not synthetic</span>
+    <div class="real-row"><span class="d">Fri, Sep 12, 2026</span><span class="mono">21,382.74</span><span></span></div>
+    <div class="real-row"><span class="d">Fri, Sep 18, 2026</span><span class="mono">21,056.26</span><span class="chg-r up mono">+0.16% that day</span></div>
+    <div class="real-row"><span class="d">Mon, Sep 21, 2026</span><span class="mono">20,979.18</span><span class="chg-r down mono">−0.37% that day</span></div>
+    <div class="real-note">These three closes are real, dated, and sourced from <a href="https://economynext.com/sri-lanka-stocks-edge-up-on-friday-to-close-mixed-week-aspi-at-21056-284001/" target="_blank" rel="noopener">EconomyNext</a>, not generated by this page. A live version would poll the CSE's unofficial <code>aspiData</code> endpoint (reverse-engineered; no official CSE API exists) through a server-side proxy. Treat it as educational use and verify anything real-money-adjacent against official CSE sources.</div>
+  </div>
+
+  <section class="spec" id="spec">
+    <h2>Build spec for Claude Code</h2>
+    <p>Copy these into a new <span class="mono">ghosttape/</span> folder in VS Code: <span class="mono">CLAUDE.md</span> in the root and the sketch in <span class="mono">firmware/ghosttape_esp32/</span>. Save this page's HTML as <span class="mono">index.html</span> next to them as the working reference. Then tell Claude Code: “Read CLAUDE.md and index.html, then start Phase 2.”</p>
+    <div class="stack">
+      <div><div class="k">Entropy</div><div class="v">ESP32 esp_random(), Wi-Fi on</div></div>
+      <div><div class="k">Firmware</div><div class="v">Arduino IDE 2 or PlatformIO, arduino-esp32</div></div>
+      <div><div class="k">Stage link</div><div class="v">USB serial → Web Serial (Chrome / Edge)</div></div>
+      <div><div class="k">Frontend</div><div class="v">Vite + TypeScript, Lightweight Charts</div></div>
+      <div><div class="k">Online relay</div><div class="v">Cloudflare Workers + Durable Objects, D1</div></div>
+      <div><div class="k">Proof</div><div class="v">ent, dieharder, PractRand, HMAC packets</div></div>
+    </div>
+    <details class="file" id="fileSpec" open>
+      <summary><span class="caret">▸</span> CLAUDE.md <span class="sub">rules, stack, model, phases</span><span class="spacer"></span><button class="copy" type="button" data-target="specText">Copy</button></summary>
+      <pre class="code" id="specText"># GhostTape: build spec for Claude Code
+
+GhostTape is a synthetic, tradable price chart whose every move comes from physical randomness: thermal and RF noise sampled by an ESP32. It looks and trades like a real terminal (candles, drawings, lots, SL/TP, margin), but it is pure noise by construction. Patterns traders "see" in it predict nothing, which is the point of the project.
+
+The starting prototype is `index.html` in this folder. It already runs in two modes: **Demo** (browser `crypto.getRandomValues`, clearly labelled) and **ESP32 live** (Web Serial). Treat it as the reference for behaviour and the model, then rebuild it properly following the phases below.
+
+## Non-negotiable rules
+
+1. **In ESP32 mode, every price move comes from one ESP32 packet.** The browser never generates randomness in this mode, and never falls back to `Math.random` or `crypto` silently.
+2. **No entropy stock on the live path.** Do not buffer, pre-generate or queue numbers between the ESP32 and the chart. Unplugging the ESP32 must freeze the candles within about 0.2 s (USB) or 0.5 s (cloud).
+3. **Each random number is used exactly once.** Never reuse or replay packets.
+4. **Demo mode is always labelled** "DEMO · browser entropy, not hardware". Switching modes starts a new session.
+5. **The ESP32 must run with Wi-Fi enabled** (or `bootloader_random_enable()` active). Otherwise `esp_random()` is only pseudo-random and the project claim is false.
+6. **Always show "Synthetic tape, not real market data"** and the no-advice notice. No real money, no real broker, ever.
+7. Ask Praveen before changing the price model's parameters, the packet format, or anything that weakens rules 1–5.
+
+## Architecture
+
+```
+ESP32 (esp_random, RF/thermal noise)
+  │  USB serial, 115200 baud, text packets          ← stage demo (Phase 1–3)
+  │  or Wi-Fi WebSocket (wss)                        ← online version (Phase 5)
+  ▼
+Browser: Web Serial reader ──► packet parser ──► model step ──► chart + account
+                                    ▲
+Cloudflare Worker + Durable Object (relay only, holds no unused numbers)
+  ├─ receives the ESP32 WebSocket, verifies HMAC
+  ├─ broadcasts each packet to all viewers immediately
+  └─ D1: stores finished candles only (for history), never raw unused entropy
+```
+
+## Stack
+
+| Layer | Choice | Notes |
+| --- | --- | --- |
+| Firmware | Arduino IDE 2 or PlatformIO, arduino-esp32 core 3.x | `firmware/ghosttape_esp32/ghosttape_esp32.ino` |
+| USB driver | CP210x or CH340 (match the board) | Windows needs it to see the COM port |
+| Frontend | Vite + TypeScript, no framework needed | Keep it a single page |
+| Chart | TradingView Lightweight Charts (Apache-2.0) | Licence requires visible TradingView attribution (keep `attributionLogo: true`). Trendlines/H-lines need series primitives or a small custom drawing layer. |
+| USB input | Web Serial API | Chrome or Edge desktop only; page must be served from `localhost` or https |
+| Relay (Phase 5) | Cloudflare Workers + Durable Objects (WebSocket hibernation API), Wrangler | One Durable Object per tape |
+| History (Phase 5) | Cloudflare D1 | Finished candles only |
+| ESP32 WebSocket client | `links2004/arduinoWebSockets` with SSL | Phase 5 |
+| Packet signing | HMAC-SHA256 via mbedTLS (built into the ESP32 core) | Phase 5; key in a git-ignored header |
+| Randomness tests | `ent`, dieharder, PractRand (`RNG_test`) | `tools/capture.py` dumps raw bytes |
+
+## Packet protocol (v1)
+
+Text lines at 115200 baud: `GT1,&lt;seq&gt;,&lt;a_hex&gt;,&lt;b_hex&gt;,&lt;c_hex&gt;\n`
+
+- `seq`: uint32 counter, resets to 0 on boot. A drop in `seq` means the ESP32 restarted; a jump means lost packets (count and display gaps).
+- `a`, `b`: uint32 for one Box–Muller Gaussian. `c`: uint32 for the regime roll.
+- `GT1,HELLO` is sent once on boot. Ignore malformed lines; never invent values to fill them.
+- Phase 5 adds a signed variant: `GT1S,&lt;seq&gt;,&lt;a&gt;,&lt;b&gt;,&lt;c&gt;,&lt;hmac8&gt;` where `hmac8` is the first 8 hex chars of HMAC-SHA256 over `seq,a,b,c`.
+
+## Price model (methodology)
+
+All of this already exists in `index.html`; keep the maths identical unless Praveen approves a change.
+
+1. **Uniforms.** `u1 = (a + 1) / (2^32 + 1)` (never 0, so `log` is safe), `u2 = b / 2^32`, `uc = (c + 1) / (2^32 + 1)`.
+2. **Gaussian.** Box–Muller: `z = sqrt(-2 ln u1) · cos(2π u2)`.
+3. **Sub-step.** Geometric Brownian motion: `price ← price · exp((μ − σ²/2) + σ z)`. One packet = one sub-step.
+4. **Candle.** 8 sub-steps make one candle. The forming candle updates live on every packet (open, high, low, close).
+5. **Regimes.** Two-state Markov switch (Hamilton-style): expansion μ = 0.0006, σ = 0.009; recession μ = −0.0009, σ = 0.020. At each candle close, roll `uc` against the switch probability:
+   - expansion → recession: `p = clamp(0.03 + (rate − 5) · 0.012, 0.01, 0.5)`
+   - recession → expansion: `p = clamp(0.05 + (5 − rate) · 0.010, 0.02, 0.5)`
+   - `rate` is the central-bank slider (0–15 %).
+6. **Account (MT5-style demo).** Balance 10,000 USD, leverage 1:100, 1 lot = 100 units. Margin = lots · 100 · entry / 100. Margin call warning below 100 % margin level; stop-out closes the worst position below 50 %.
+7. **Stops.** SL/TP are checked against every sub-step price as it arrives, so stops fire intrabar and never against prices from before the trade was opened. Fill at the stop level.
+8. **Later, optional (ask first):** fat tails (Student-t from the uniform via inverse CDF) and volatility clustering (a slowly varying σ also driven by ESP32 numbers). These make the tape feel more like a real market without adding any predictability.
+
+## Unplug demo behaviour
+
+- No packets → no price changes. The forming candle freezes mid-candle.
+- Watchdog: no packet for 2.5 × packet interval (400 ms at 160 ms) → status turns red, overlay "ESP32 disconnected · no entropy · no candles".
+- `navigator.serial` `disconnect` event and a rejected `reader.read()` both trigger the same offline state.
+- Replug: the `connect` event reopens the previously granted port automatically and the tape resumes from the frozen price. A `seq` reset is logged as "ESP32 restarted".
+- A raw feed panel shows the last packets (seq + hex) so the audience sees numbers stop at the same instant as the candles.
+
+## Phases and acceptance checks
+
+**Phase 1: firmware.** Flash the sketch. Serial monitor shows `GT1,...` lines at about 6 per second. Done when 1,000 consecutive packets parse with no gaps.
+
+**Phase 2: browser live mode.** Vite + TS page with Connect ESP32, raw feed panel, status chip, watchdog. Done when unplugging freezes the chart in under 0.2 s, replugging resumes it, and Demo mode is visibly labelled.
+
+**Phase 3: chart and trading.** Port the model and account from `index.html`; switch rendering to Lightweight Charts with a drawing layer for trendlines and H-lines. Done when SL/TP, margin call and stop-out behave as in the prototype, and unit tests cover Box–Muller mapping, the regime probabilities and margin maths (Vitest).
+
+**Phase 4: prove the randomness.** Set `CAPTURE_MODE 1`, capture at least 10 MB with `tools/capture.py`, run `ent`, dieharder and PractRand. Save the outputs in `docs/randomness/` and add a short results page linked from the app. Done when results are saved and the app shows the date and pass summary.
+
+**Phase 5: online version.** ESP32 connects over Wi-Fi to a Cloudflare Worker WebSocket; one Durable Object relays packets to viewers with no queue of unused numbers; HMAC verified per packet; D1 keeps finished candles for history. Done when two browsers show identical candles live and pulling the ESP32's power freezes both within about 0.5 s.
+
+**Phase 6: polish.** Session replay from D1, shareable read-only tape link, mobile layout, and the "strategy lie detector" page that explains why patterns appear in pure noise.
+
+## Suggested structure
+
+```
+ghosttape/
+  CLAUDE.md
+  index.html                  # prototype: reference only
+  firmware/ghosttape_esp32/ghosttape_esp32.ino
+  tools/capture.py
+  web/                        # Vite + TS app (Phases 2–3)
+    src/entropy/serial.ts     # Web Serial source + watchdog
+    src/entropy/demo.ts       # labelled demo source
+    src/model/                # uniforms, box-muller, gbm, regimes, account
+    src/chart/                # Lightweight Charts + drawing layer
+  worker/                     # Cloudflare Worker + Durable Object (Phase 5)
+  docs/randomness/
+```
+
+## Commands
+
+- `cd web &amp;&amp; npm create vite@latest . -- --template vanilla-ts &amp;&amp; npm i lightweight-charts`
+- `npm run dev`, then open `http://localhost:5173` in Chrome or Edge (Web Serial needs localhost or https)
+- `npm i -D vitest` for model tests
+- Phase 5: `npm create cloudflare@latest worker`, `npx wrangler dev`, `npx wrangler deploy`
+
+## Start here
+
+Read `index.html` and this file, then begin Phase 2. Show Praveen the plan for the `web/` folder before writing code.</pre>
+    </details>
+    <details class="file" id="fileFw">
+      <summary><span class="caret">▸</span> ghosttape_esp32.ino <span class="sub">ESP32 firmware</span><span class="spacer"></span><button class="copy" type="button" data-target="fwText">Copy</button></summary>
+      <pre class="code" id="fwText">// GhostTape entropy source for ESP32 (Arduino core 3.x)
+//
+// Streams hardware random numbers over USB serial, one packet per price sub-step.
+// Packet format (text, one per line, 115200 baud):
+//   GT1,&lt;seq&gt;,&lt;a_hex&gt;,&lt;b_hex&gt;,&lt;c_hex&gt;
+//     seq    : packet counter, starts at 0 on every boot
+//     a, b   : two uint32 used by Box-Muller for one Gaussian price step
+//     c      : one uint32 used for the regime roll at the end of each candle
+//
+// esp_random() is only TRUE random while the RF subsystem is on (Wi-Fi or BT enabled)
+// or while bootloader_random_enable() is active. We switch Wi-Fi on in STA mode
+// (no network needed) and disable modem sleep so the radio's ADC keeps feeding noise.
+//
+// CAPTURE_MODE = 1 turns the board into a raw entropy pump for statistical tests:
+// it writes binary uint32s as fast as possible (pipe to a file, then run ent/dieharder).
+
+#include &lt;WiFi.h&gt;
+
+#define CAPTURE_MODE 0
+static const uint32_t PACKET_MS = 160;   // 8 packets per candle -&gt; about 1.3 s per candle
+
+uint32_t seq = 0;
+
+void setup() {
+  Serial.begin(CAPTURE_MODE ? 921600 : 115200);   // capture runs fast; live demo stays at 115200
+  WiFi.mode(WIFI_STA);    // radio on: hardware entropy source active
+  WiFi.setSleep(false);   // keep the RF front end awake
+  delay(300);
+#if !CAPTURE_MODE
+  Serial.println("GT1,HELLO");
+#endif
+}
+
+void loop() {
+#if CAPTURE_MODE
+  uint32_t buf[64];
+  for (int i = 0; i &lt; 64; i++) buf[i] = esp_random();
+  Serial.write((uint8_t*)buf, sizeof(buf));
+#else
+  uint32_t a = esp_random();
+  uint32_t b = esp_random();
+  uint32_t c = esp_random();
+  Serial.printf("GT1,%lu,%08lx,%08lx,%08lx\n",
+                (unsigned long)seq++, (unsigned long)a, (unsigned long)b, (unsigned long)c);
+  delay(PACKET_MS);
+#endif
+}</pre>
+    </details>
+    <details class="file" id="fileCap">
+      <summary><span class="caret">▸</span> tools/capture.py <span class="sub">entropy capture for randomness tests</span><span class="spacer"></span><button class="copy" type="button" data-target="capText">Copy</button></summary>
+      <pre class="code" id="capText">"""Capture raw ESP32 entropy for statistical testing.
+
+Flash the firmware with CAPTURE_MODE 1 first, then:
+    pip install pyserial
+    python tools/capture.py COM5 entropy.bin 10      # port, output file, megabytes (about 2-3 min per 10 MB at 921600 baud)
+Then test it:
+    ent entropy.bin
+    dieharder -a -g 201 -f entropy.bin
+    RNG_test stdin32 &lt; entropy.bin                   # PractRand
+"""
+import sys
+import serial
+
+port, out_path, megabytes = sys.argv[1], sys.argv[2], float(sys.argv[3])
+target = int(megabytes * 1024 * 1024)
+
+with serial.Serial(port, 921600, timeout=2) as ser, open(out_path, "wb") as out:
+    ser.reset_input_buffer()
+    got = 0
+    while got &lt; target:
+        chunk = ser.read(min(4096, target - got))
+        if not chunk:
+            sys.exit("No data. Is CAPTURE_MODE set to 1 and the right port selected?")
+        out.write(chunk)
+        got += len(chunk)
+        print(f"\r{got / 1048576:.2f} / {megabytes} MB", end="")
+print("\nDone:", out_path)</pre>
+    </details>
+  </section>
+
+  <footer>Every candle is synthetic. One entropy packet (three 32-bit numbers) drives one price step: two numbers become a Gaussian through Box–Muller, which moves a Geometric Brownian Motion inside a two-regime Markov switch (Hamilton-style expansion and recession); the third rolls the regime change at each candle close, biased by the central bank slider. In ESP32 mode those numbers come only from the chip's thermal and RF noise, so the tape stops the moment the chip does. Demo mode uses browser crypto and says so. The account, 1:100 leverage, margin calls, stop-outs and intrabar SL/TP behave like a real MT5 demo terminal. No real money, no real broker, no real execution; not economic advice or a trading signal.</footer>
+</div>
+
+<script>
+  const W = 700, H = 300, WINDOW = 46;
+  const SUBSTEPS = 8;          // packets per candle
+  const PACKET_MS = 160;       // demo cadence, matches the firmware
+  const WATCHDOG_MS = 400;     // no ESP32 packet for this long = offline
+  const TWO32 = 4294967296;
+  const REGIMES = {
+    expansion: { mu: 0.0006, sigma: 0.009 },
+    recession: { mu: -0.0009, sigma: 0.020 }
+  };
+  const LEVERAGE = 100, CONTRACT = 100, START_BALANCE = 10000;
+
+  let allCandles = [], regime = 'expansion', rate = 5.0;
+  let drawings = [], activeTool = null, pendingPoint = null;
+  let balance = START_BALANCE, positions = [], nextTicket = 1000001;
+  let lastRender = null;
+
+  // entropy source state
+  let source = 'demo';           // 'demo' | 'esp32'
+  let subIdx = 0;                // sub-steps taken in the forming candle
+  let demoTimer = null;
+  let port = null, reader = null, feedLive = false;
+  let lastPacketAt = 0, packets = 0, gaps = 0, lastSeq = null;
+  let rawRows = [], lastPacket = null;
+
+  const $ = id => document.getElementById(id);
+  const hex8 = n => (n >>> 0).toString(16).padStart(8, '0');
+  const toU = x => (x + 1) / (TWO32 + 1);          // (0,1), never 0
+  function fmtUsd(v){ return (v<0?'-$':'$') + Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function calcPnl(p, price){ return (price - p.entryPrice) * (p.dir==='long' ? 1 : -1) * p.lots * CONTRACT; }
+  function marginForPosition(p){ return (p.lots * CONTRACT * p.entryPrice) / LEVERAGE; }
+  function cryptoU32(){ const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0]; }
+
+  // ---------- model: one packet = one price sub-step ----------
+  function gaussianFrom(a, b){ return Math.sqrt(-2*Math.log(toU(a))) * Math.cos(2*Math.PI*(b / TWO32)); }
+
+  function onEntropy(a, b, c, seq){
+    lastPacketAt = performance.now(); packets++;
+    lastPacket = { seq, a, b, c };
+    pushRaw(seq, a, b, c);
+    if (source === 'esp32' && !feedLive) setFeed('live');
+
+    const { mu, sigma } = REGIMES[regime];
+    let candle = allCandles[allCandles.length-1];
+    if (subIdx === 0){
+      const prev = candle.close;
+      candle = { open: prev, high: prev, low: prev, close: prev };
+      allCandles.push(candle);
+    }
+    const price = candle.close * Math.exp((mu - sigma*sigma/2) + sigma*gaussianFrom(a, b));
+    candle.close = price;
+    if (price > candle.high) candle.high = price;
+    if (price < candle.low) candle.low = price;
+    subIdx++;
+
+    checkStopsAt(price);
+    if (subIdx >= SUBSTEPS){
+      subIdx = 0;
+      maybeShiftRegime(toU(c));
+      updateRegimeBadge();
+    }
+    checkMarginCall();
+    render(); renderPositionsTable(); updateAccountStrip(); updateStats();
+  }
+
+  function maybeShiftRegime(u){
+    let p;
+    if (regime === 'expansion'){
+      p = Math.min(0.5, Math.max(0.01, 0.03 + (rate - 5) * 0.012));
+      if (u < p){ logShift('expansion', 'recession'); regime = 'recession'; }
+    } else {
+      p = Math.min(0.5, Math.max(0.02, 0.05 + (5 - rate) * 0.010));
+      if (u < p){ logShift('recession', 'expansion'); regime = 'expansion'; }
+    }
+  }
+
+  // demo history only: instant candles from browser crypto, labelled as demo
+  function demoHistoryCandle(prevClose){
+    const { mu, sigma } = REGIMES[regime];
+    let price = prevClose; const open = price; let hi = price, lo = price;
+    for (let s=0;s<SUBSTEPS;s++){
+      price = price * Math.exp((mu - sigma*sigma/2) + sigma*gaussianFrom(cryptoU32(), cryptoU32()));
+      hi = Math.max(hi, price); lo = Math.min(lo, price);
+    }
+    return { open, high:hi, low:lo, close:price };
+  }
+
+  // ---------- entropy sources ----------
+  function setFeed(state, msg){
+    const chip = $('feedChip'), label = $('feedLabel');
+    chip.className = 'feed-chip ' + state;
+    label.textContent = {
+      demo: 'DEMO · browser entropy, not hardware',
+      waiting: 'ESP32 · waiting for packets',
+      live: 'LIVE · ESP32 hardware entropy',
+      offline: 'ESP32 OFFLINE · no entropy'
+    }[state];
+    feedLive = state === 'live';
+    $('freeze').hidden = state !== 'offline';
+    if (msg !== undefined) $('sourceMsg').textContent = msg;
+  }
+
+  function stopDemo(){ if (demoTimer){ clearInterval(demoTimer); demoTimer = null; } }
+
+  function useDemo(){
+    disconnectPort();
+    source = 'demo';
+    setFeed('demo', '');
+    newSession();
+  }
+
+  async function connectEsp32(){
+    if (!('serial' in navigator)){
+      setFeed(source === 'demo' ? 'demo' : 'offline', 'Web Serial is not available here. Open this page from localhost or your own https site in desktop Chrome or Edge; embedded previews block USB access.');
+      return;
+    }
+    try {
+      port = await navigator.serial.requestPort();
+      await port.open({ baudRate: 115200 });
+    } catch (e){
+      setFeed(source === 'demo' ? 'demo' : 'offline', 'Could not open the ESP32: ' + (e && e.message ? e.message : e) + '. Pick the board\'s COM port and make sure no serial monitor is holding it.');
+      port = null; return;
+    }
+    stopDemo();
+    source = 'esp32';
+    setFeed('waiting', 'Every price step now needs a fresh packet from the ESP32. Unplug it to freeze the tape.');
+    newSession();
+    readLoop();
+  }
+
+  async function readLoop(){
+    const decoder = new TextDecoderStream();
+    port.readable.pipeTo(decoder.writable).catch(() => {});
+    reader = decoder.readable.getReader();
+    let buf = '';
+    try {
+      while (true){
+        const { value, done } = await reader.read();   // rejects the instant USB is pulled
+        if (done) break;
+        buf += value;
+        let i;
+        while ((i = buf.indexOf('\n')) >= 0){ handleLine(buf.slice(0, i).trim()); buf = buf.slice(i + 1); }
+        if (buf.length > 4096) buf = '';
+      }
+    } catch (e) { /* unplugged */ }
+    finally {
+      try { reader.releaseLock(); } catch (e) {}
+      reader = null;
+      if (source === 'esp32') goOffline('The ESP32 stopped sending. Plug it back in to resume from the frozen price.');
+      try { await port.close(); } catch (e) {}
+    }
+  }
+
+  function handleLine(line){
+    const p = line.split(',');
+    if (p[0] !== 'GT1') return;
+    if (p[1] === 'HELLO'){ logJournal('<b>ESP32 booted</b>, entropy stream starting'); return; }
+    if (p.length !== 5) return;
+    const seq = Number(p[1]);
+    const a = parseInt(p[2], 16), b = parseInt(p[3], 16), c = parseInt(p[4], 16);
+    if (!Number.isInteger(seq) || ![p[2], p[3], p[4]].every(h => /^[0-9a-fA-F]{8}$/.test(h))) return;
+    if (lastSeq !== null){
+      if (seq < lastSeq) logJournal('<span class="shift">ESP32 restarted</span>, sequence reset to ' + seq);
+      else if (seq > lastSeq + 1) gaps += seq - lastSeq - 1;
+    }
+    lastSeq = seq;
+    onEntropy(a >>> 0, b >>> 0, c >>> 0, seq);
+  }
+
+  function goOffline(msg){ if (source === 'esp32' && $('feedChip').className.indexOf('offline') < 0){ setFeed('offline', msg); logJournal('<span class="shift">entropy lost</span>, tape frozen at ' + lastClose().toFixed(2)); } }
+
+  function disconnectPort(){
+    const r = reader, pt = port;
+    port = null; reader = null;
+    if (r) r.cancel().catch(() => {});
+    if (pt) setTimeout(() => pt.close().catch(() => {}), 50);
+  }
+
+  // watchdog: also catches a frozen board, not only an unplug
+  setInterval(() => {
+    if (source === 'esp32' && feedLive && performance.now() - lastPacketAt > WATCHDOG_MS) goOffline('No packet for ' + WATCHDOG_MS + ' ms. The tape is frozen until entropy returns.');
+    updateStats();
+  }, 50);
+
+  if ('serial' in navigator){
+    navigator.serial.addEventListener('disconnect', () => { if (source === 'esp32') goOffline('USB disconnected. No entropy, no candles.'); });
+    navigator.serial.addEventListener('connect', async (e) => {
+      if (source !== 'esp32' || reader) return;
+      try { port = e.target; await port.open({ baudRate: 115200 }); setFeed('waiting', 'ESP32 reconnected. Waiting for packets.'); readLoop(); } catch (err) {}
+    });
+  }
+
+  function pushRaw(seq, a, b, c){
+    rawRows.unshift('<div class="row"><span class="seq">#' + (seq === null ? 'demo' : seq) + '</span><span>' + hex8(a) + '</span><span>' + hex8(b) + '</span><span>' + hex8(c) + '</span></div>');
+    if (rawRows.length > 8) rawRows.length = 8;
+    $('rawfeed').innerHTML = rawRows.join('');
+  }
+
+  function updateStats(){
+    const ago = packets ? Math.round(performance.now() - lastPacketAt) : null;
+    $('feedStats').textContent = packets.toLocaleString('en-US') + ' packets' + (source === 'esp32' ? ' · ' + gaps + ' gaps' : '') + (ago !== null ? ' · last ' + (ago > 9999 ? '>10 s' : ago + ' ms') + ' ago' : '');
+  }
+
+  // ---------- trading ----------
+  function lastClose(){ return allCandles[allCandles.length-1].close; }
+
+  function logJournal(html){
+    const el = $('ticker'); const line = document.createElement('div');
+    line.innerHTML = html; el.prepend(line);
+    while (el.children.length > 10) el.removeChild(el.lastChild);
+  }
+  function logShift(from, to){ logJournal('<span class="shift">⚡ regime shift</span> ' + from + ' → ' + to + ' (rate ' + rate.toFixed(1) + '%, ' + (source === 'esp32' ? 'ESP32' : 'demo') + ' roll)'); }
+
+  function forceClosePosition(idx, reason, price){
+    const p = positions[idx]; const pnl = calcPnl(p, price);
+    balance += pnl; positions.splice(idx, 1);
+    logJournal('<b>' + reason + '</b> #' + p.ticket + ' ' + p.dir.toUpperCase() + ' ' + p.lots.toFixed(2) + ' lots @ ' + price.toFixed(2) +
+      ' → <span class="' + (pnl>=0?'chg-r up':'chg-r down') + '">' + (pnl>=0?'+':'') + fmtUsd(pnl) + '</span>');
+  }
+
+  // stops are checked against each new sub-step price, so nothing before the entry can trigger them
+  function checkStopsAt(price){
+    for (let i = positions.length - 1; i >= 0; i--){
+      const p = positions[i];
+      if (p.dir === 'long'){
+        if (p.sl != null && price <= p.sl){ forceClosePosition(i, 'SL HIT', p.sl); continue; }
+        if (p.tp != null && price >= p.tp){ forceClosePosition(i, 'TP HIT', p.tp); continue; }
+      } else {
+        if (p.sl != null && price >= p.sl){ forceClosePosition(i, 'SL HIT', p.sl); continue; }
+        if (p.tp != null && price <= p.tp){ forceClosePosition(i, 'TP HIT', p.tp); continue; }
+      }
+    }
+  }
+
+  function accountSnapshot(){
+    const last = lastClose(); let floating = 0, marginUsed = 0;
+    positions.forEach(p => { floating += calcPnl(p, last); marginUsed += marginForPosition(p); });
+    const equity = balance + floating;
+    return { last, floating, marginUsed, equity, freeMargin: equity - marginUsed, marginLevel: marginUsed > 0 ? equity / marginUsed * 100 : null };
+  }
+
+  function checkMarginCall(){
+    for (let guard = 0; guard < positions.length + 1; guard++){
+      const snap = accountSnapshot();
+      if (snap.marginLevel !== null && snap.marginLevel < 50 && positions.length){
+        let worstIdx = 0, worstPnl = Infinity;
+        positions.forEach((p,i) => { const pnl = calcPnl(p, snap.last); if (pnl < worstPnl){ worstPnl = pnl; worstIdx = i; } });
+        forceClosePosition(worstIdx, 'STOP OUT', snap.last);
+      } else break;
+    }
+  }
+
+  function updateAccountStrip(){
+    const snap = accountSnapshot();
+    $('acctBalance').textContent = fmtUsd(balance);
+    $('acctEquity').textContent = fmtUsd(snap.equity);
+    const fl = $('acctFloating'); fl.textContent = (snap.floating>=0?'+':'') + fmtUsd(snap.floating); fl.className = 'val mono ' + (snap.floating>=0?'up':'down');
+    $('acctMargin').textContent = fmtUsd(snap.marginUsed);
+    $('acctFreeMargin').textContent = fmtUsd(snap.freeMargin);
+    const ml = $('acctMarginLevel'); ml.textContent = snap.marginLevel === null ? '—' : snap.marginLevel.toFixed(0) + '%';
+    ml.className = 'val mono ' + (snap.marginLevel !== null && snap.marginLevel < 150 ? 'down' : '');
+    const warn = $('marginWarn');
+    if (snap.marginLevel !== null && snap.marginLevel < 100){ warn.hidden = false; warn.textContent = '⚠ MARGIN CALL: margin level ' + snap.marginLevel.toFixed(0) + '%. Positions stop out below 50%.'; }
+    else warn.hidden = true;
+  }
+
+  function renderPositionsTable(){
+    const snap = accountSnapshot(); const body = $('posBody');
+    if (!positions.length){ body.innerHTML = '<tr class="empty"><td colspan="9">No open positions. Place a BUY or SELL above.</td></tr>'; return; }
+    body.innerHTML = positions.map(p => {
+      const pnl = calcPnl(p, snap.last);
+      return '<tr><td>#' + p.ticket + '</td><td>' + p.dir.toUpperCase() + '</td><td>' + p.lots.toFixed(2) + '</td><td>' + p.entryPrice.toFixed(2) + '</td>' +
+        '<td>' + (p.sl!=null ? p.sl.toFixed(2) : '—') + '</td><td>' + (p.tp!=null ? p.tp.toFixed(2) : '—') + '</td>' +
+        '<td>' + snap.last.toFixed(2) + '</td><td class="pnl ' + (pnl>=0?'up':'down') + '">' + (pnl>=0?'+':'') + fmtUsd(pnl) + '</td>' +
+        '<td><button class="closex" type="button" data-ticket="' + p.ticket + '">Close</button></td></tr>';
+    }).join('');
+  }
+
+  function placeOrder(dir){
+    if (source === 'esp32' && !feedLive){ $('sourceMsg').textContent = 'The tape is frozen. Orders need a live price, so reconnect the ESP32 first.'; return; }
+    const lots = Math.min(5, Math.max(0.01, parseFloat($('lotsInput').value) || 0.10));
+    let sl = $('slInput').value !== '' ? parseFloat($('slInput').value) : null;
+    let tp = $('tpInput').value !== '' ? parseFloat($('tpInput').value) : null;
+    const last = lastClose();
+    if (dir === 'long'){ if (sl != null && sl >= last) sl = null; if (tp != null && tp <= last) tp = null; }
+    else { if (sl != null && sl <= last) sl = null; if (tp != null && tp >= last) tp = null; }
+    const pos = { ticket: nextTicket++, dir, lots, entryId: allCandles.length-1, entryPrice: last, sl, tp };
+    positions.push(pos);
+    logJournal('<b>OPENED</b> #' + pos.ticket + ' ' + dir.toUpperCase() + ' ' + lots.toFixed(2) + ' lots @ ' + last.toFixed(2) + (sl!=null ? ' · SL ' + sl.toFixed(2) : '') + (tp!=null ? ' · TP ' + tp.toFixed(2) : ''));
+    render(); renderPositionsTable(); updateAccountStrip();
+  }
+
+  function closePositionByTicket(ticket){
+    const idx = positions.findIndex(p => p.ticket === ticket);
+    if (idx < 0) return;
+    forceClosePosition(idx, 'CLOSED', lastClose());
+    render(); renderPositionsTable(); updateAccountStrip();
+  }
+
+  function updateRegimeBadge(){
+    const b = $('regimeBadge');
+    b.textContent = 'Regime: ' + (regime === 'expansion' ? 'Expansion' : 'Recession');
+    b.className = 'regime ' + regime;
+  }
+
+  function newSession(){
+    stopDemo();
+    regime = 'expansion'; subIdx = 0;
+    allCandles = [{ open:100, high:100, low:100, close:100 }];
+    if (source === 'demo'){
+      let price = 100;
+      allCandles = [];
+      for (let i=0;i<WINDOW-6;i++){ const c = demoHistoryCandle(price); allCandles.push(c); price = c.close; }
+      demoTimer = setInterval(() => onEntropy(cryptoU32(), cryptoU32(), cryptoU32(), null), PACKET_MS);
+    }
+    drawings = []; positions = []; balance = START_BALANCE; nextTicket = 1000001;
+    packets = 0; gaps = 0; lastSeq = null; rawRows = []; lastPacket = null;
+    $('rawfeed').innerHTML = '<div class="empty">' + (source === 'esp32' ? 'Waiting for the first packet from the ESP32…' : 'Demo packets will appear here') + '</div>';
+    $('ticker').innerHTML = '';
+    logJournal(source === 'esp32' ? '<b>New session</b>, every candle from here comes from ESP32 noise' : '<b>New demo session</b>, browser entropy (not hardware)');
+    updateRegimeBadge(); render(); renderPositionsTable(); updateAccountStrip(); updateStats();
+  }
+
+  // ---------- chart ----------
+  function priceToY(v, yMin, yMax){ return H - ((v - yMin)/(yMax-yMin))*H; }
+  function yToPrice(y, yMin, yMax){ return yMin + ((H - y)/H)*(yMax-yMin); }
+
+  function render(){
+    const visible = allCandles.slice(-WINDOW);
+    const firstId = allCandles.length - visible.length;
+    const cw = W / WINDOW;
+    let allHigh = Math.max(...visible.map(c=>c.high)), allLow = Math.min(...visible.map(c=>c.low));
+    positions.forEach(p => {
+      allHigh = Math.max(allHigh, p.entryPrice, p.tp != null ? p.tp : -Infinity);
+      allLow = Math.min(allLow, p.entryPrice, p.sl != null ? p.sl : Infinity);
+    });
+    const pad = (allHigh-allLow) * 0.12 || 1;
+    const yMax = allHigh + pad, yMin = allLow - pad;
+    lastRender = { cw, firstId, yMin, yMax };
+    let svg = '';
+
+    positions.forEach(p => {
+      const exitId = allCandles.length-1, exitPrice = visible[visible.length-1].close;
+      const x1 = (p.entryId - firstId) * cw, x2 = (exitId - firstId) * cw + cw;
+      const yE = priceToY(p.entryPrice, yMin, yMax), yX = priceToY(exitPrice, yMin, yMax);
+      const profit = p.dir === 'long' ? exitPrice > p.entryPrice : exitPrice < p.entryPrice;
+      const color = profit ? 'var(--green)' : 'var(--red)', bg = profit ? 'var(--green-bg)' : 'var(--red-bg)';
+      const top = Math.min(yE,yX), bot = Math.max(yE,yX), pnl = calcPnl(p, exitPrice);
+      svg += '<rect x="'+Math.max(0,x1)+'" y="'+top+'" width="'+Math.max(2,x2-Math.max(0,x1))+'" height="'+Math.max(2,bot-top)+'" fill="'+bg+'" stroke="'+color+'" stroke-width="1" stroke-dasharray="4 3"/>';
+      svg += '<text x="'+(Math.max(0,x1)+6)+'" y="'+(top+13)+'" font-family="Roboto Mono, monospace" font-size="10" fill="'+color+'">#'+p.ticket+' '+(p.dir==='long'?'LONG':'SHORT')+' '+(pnl>=0?'+':'')+pnl.toFixed(2)+'</text>';
+      if (p.sl != null){ const y = priceToY(p.sl, yMin, yMax); svg += '<line x1="0" y1="'+y+'" x2="'+W+'" y2="'+y+'" stroke="var(--red)" stroke-width="1" stroke-dasharray="2 4" opacity="0.7"/>'; }
+      if (p.tp != null){ const y = priceToY(p.tp, yMin, yMax); svg += '<line x1="0" y1="'+y+'" x2="'+W+'" y2="'+y+'" stroke="var(--green)" stroke-width="1" stroke-dasharray="2 4" opacity="0.7"/>'; }
+    });
+
+    visible.forEach((c,i) => {
+      const x = i*cw + cw/2, up = c.close >= c.open, color = up ? 'var(--green)' : 'var(--red)';
+      const bodyTop = priceToY(Math.max(c.open,c.close), yMin, yMax), bodyBot = priceToY(Math.min(c.open,c.close), yMin, yMax);
+      const forming = (i === visible.length-1) && subIdx > 0;
+      svg += '<line x1="'+x+'" y1="'+priceToY(c.high,yMin,yMax)+'" x2="'+x+'" y2="'+priceToY(c.low,yMin,yMax)+'" stroke="'+color+'" stroke-width="1.2"/>';
+      svg += '<rect x="'+(x-cw*0.32)+'" y="'+bodyTop+'" width="'+(cw*0.64)+'" height="'+Math.max(1.4, bodyBot-bodyTop)+'" fill="'+color+'" rx="1"'+(forming?' opacity="0.75"':'')+'/>';
+    });
+
+    // last price line
+    const yl = priceToY(lastClose(), yMin, yMax);
+    svg += '<line x1="0" y1="'+yl+'" x2="'+W+'" y2="'+yl+'" stroke="var(--ink-dim)" stroke-width="0.8" stroke-dasharray="1 3"/>';
+
+    drawings.forEach(d => {
+      if (d.type === 'hline'){
+        const y = priceToY(d.price, yMin, yMax);
+        svg += '<line x1="0" y1="'+y+'" x2="'+W+'" y2="'+y+'" stroke="var(--accent)" stroke-width="1.3" stroke-dasharray="5 4"/>';
+        svg += '<text x="6" y="'+(y-4)+'" font-family="Roboto Mono, monospace" font-size="9.5" fill="var(--accent)">'+d.price.toFixed(2)+'</text>';
+      } else {
+        const x1=(d.p1.id-firstId)*cw+cw/2, y1=priceToY(d.p1.price,yMin,yMax), x2=(d.p2.id-firstId)*cw+cw/2, y2=priceToY(d.p2.price,yMin,yMax);
+        svg += '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="var(--accent)" stroke-width="1.6"/>';
+        svg += '<circle cx="'+x1+'" cy="'+y1+'" r="2.6" fill="var(--accent)"/><circle cx="'+x2+'" cy="'+y2+'" r="2.6" fill="var(--accent)"/>';
+      }
+    });
+    $('chart').innerHTML = svg;
+
+    const first = visible[0].open, last = visible[visible.length-1].close, pct = (last-first)/first*100;
+    $('priceNow').textContent = last.toFixed(2);
+    const chg = $('chgNow'); chg.textContent = (pct>=0?'+':'') + pct.toFixed(2) + '%'; chg.className = 'chg ' + (pct>=0?'up':'down');
+
+    const rp = REGIMES[regime];
+    $('proof').innerHTML =
+      '<b>Source:</b> ' + (source === 'esp32' ? 'ESP32 esp_random() over USB serial (thermal and RF noise, Wi-Fi on)' : 'browser crypto.getRandomValues() (demo, not hardware)') + '<br>' +
+      '<b>Last packet:</b> ' + (lastPacket ? (lastPacket.seq === null ? 'demo' : '#' + lastPacket.seq) + ' a=' + hex8(lastPacket.a) + ' b=' + hex8(lastPacket.b) + ' c=' + hex8(lastPacket.c) : 'none yet') + '<br>' +
+      '<b>Mapping:</b> z = √(−2 ln u₁)·cos(2π u₂), u₁=(a+1)/(2³²+1), u₂=b/2³²; regime roll uses c at each candle close<br>' +
+      '<b>Regime:</b> ' + regime + ', μ=' + rp.mu.toFixed(4) + ' σ=' + rp.sigma.toFixed(3) + ' per sub-step, ' + SUBSTEPS + ' sub-steps per candle<br>' +
+      '<b>Central bank rate:</b> ' + rate.toFixed(1) + '%<br>' +
+      '<b>Session:</b> ' + allCandles.length + ' candles, ' + packets.toLocaleString('en-US') + ' packets used once each';
+  }
+
+  function selectTool(t){
+    activeTool = (activeTool === t) ? null : t; pendingPoint = null;
+    $('toolTrend').classList.toggle('active', activeTool==='trend');
+    $('toolHline').classList.toggle('active', activeTool==='hline');
+    $('chart').classList.toggle('drawing', !!activeTool);
+  }
+
+  function chartClick(evt){
+    if (!activeTool || !lastRender) return;
+    const svg = $('chart'), pt = svg.createSVGPoint();
+    pt.x = evt.clientX; pt.y = evt.clientY;
+    const loc = pt.matrixTransform(svg.getScreenCTM().inverse());
+    const { cw, firstId, yMin, yMax } = lastRender;
+    const price = yToPrice(loc.y, yMin, yMax), id = firstId + Math.floor(loc.x / cw);
+    if (activeTool === 'hline'){ drawings.push({ type:'hline', price }); selectTool('hline'); render(); return; }
+    if (!pendingPoint){ pendingPoint = { id, price }; }
+    else { drawings.push({ type:'trend', p1: pendingPoint, p2: { id, price } }); pendingPoint = null; selectTool('trend'); render(); }
+  }
+
+  // ---------- wiring ----------
+  $('btnConnect').addEventListener('click', connectEsp32);
+  $('btnDemo').addEventListener('click', useDemo);
+  $('btnNew').addEventListener('click', () => { if (source === 'esp32') { setFeed(feedLive ? 'live' : 'waiting'); } newSession(); });
+  $('btnProof').addEventListener('click', () => { const p = $('proof'); p.hidden = !p.hidden; $('btnProof').textContent = p.hidden ? 'Show entropy proof' : 'Hide entropy proof'; });
+  $('toolTrend').addEventListener('click', () => selectTool('trend'));
+  $('toolHline').addEventListener('click', () => selectTool('hline'));
+  $('btnClear').addEventListener('click', () => { drawings = []; render(); });
+  $('btnBuy').addEventListener('click', () => placeOrder('long'));
+  $('btnSell').addEventListener('click', () => placeOrder('short'));
+  $('posBody').addEventListener('click', e => { const b = e.target.closest('[data-ticket]'); if (b) closePositionByTicket(Number(b.dataset.ticket)); });
+  $('chart').addEventListener('click', chartClick);
+  $('rateSlider').addEventListener('input', e => { rate = parseFloat(e.target.value); $('rateVal').textContent = rate.toFixed(1) + '%'; });
+
+  document.querySelectorAll('.copy').forEach(btn => btn.addEventListener('click', async (e) => {
+    e.preventDefault(); e.stopPropagation();
+    const pre = $(btn.dataset.target);
+    const done = () => { btn.textContent = 'Copied'; btn.classList.add('done'); setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1600); };
+    try { await navigator.clipboard.writeText(pre.textContent); done(); }
+    catch (err) {
+      pre.closest('details').open = true;
+      const r = document.createRange(); r.selectNodeContents(pre);
+      const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      btn.textContent = 'Selected, press Ctrl+C';
+    }
+  }));
+
+  newSession();
+</script>
+
+</body>
+</html>

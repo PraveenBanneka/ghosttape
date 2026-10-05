@@ -1,0 +1,10 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // GhostTape Worker. Phase E adds "main", the Durable Object relay and its bindings.
+  // Name must start with "ghosttape" and must never reuse a ZedPath resource (the guard checks both).
+  "name": "ghosttape",
+  // Pinned: Stacklineops@gmail.com's Account (confirmed by `wrangler whoami`, 2026-10-05).
+  // Shared with ZedPath. The guard allows outward actions to THIS id only.
+  "account_id": "e6474e41044c5722ad57c3372ab7492e",
+  "compatibility_date": "2026-10-01"
+}

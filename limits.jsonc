@@ -1,0 +1,35 @@
+{
+  // OWNER-ONLY FILE (Praveen). Claude is hard-blocked from editing this file, limits.lock and
+  // tools/lock-limits.cjs by .claude/hooks/ghosttape-guard.cjs, even with a GO.
+  // To change a value: edit by hand, then run `node tools/lock-limits.cjs` yourself.
+  // `npm test` fails if this file changes without being re-locked.
+  //
+  // Why: the Cloudflare Free plan is SHARED with ZedPath (same account). Going over a limit does not
+  // cost money, it makes Cloudflare refuse requests until the next UTC day, so ZedPath would go down too.
+  // These caps are enforced on the server (Worker / Durable Object), not just hidden in the UI.
+
+  // Online (cloud) mode. false = local USB mode only, zero Cloudflare usage.
+  "online_enabled": false,
+
+  // Daily caps for online mode (reset at 00:00 UTC). When one is hit, the Worker stops accepting
+  // ESP32 packets, tells the ESP32 to pause, and viewers see "daily limit reached".
+  "max_stream_minutes_per_day": 60,       // 6 packets/s x 3,600 s = 21,600 msgs / 20 = 1,080 requests (1.1% of 100k)
+  "max_ingest_messages_per_day": 21600,
+  "max_do_gb_seconds_per_day": 450,       // 0.125 GB x 3,600 s; 3.5% of the 13,000 GB-s/day free allowance
+  "max_concurrent_viewers": 20,
+
+  // Research quota (Firecrawl free plan): WebFetch first, Firecrawl only when needed.
+  "firecrawl_calls_per_task": 10,
+
+  // Trading terminal constants (demo account only, no real money).
+  "trading": {
+    "spread": 0,
+    "leverage": 100,
+    "contract_size": 100,
+    "start_balance": 10000,
+    "min_lots": 0.01,
+    "max_lots": 5,
+    "margin_call_level_pct": 100,
+    "stop_out_level_pct": 50
+  }
+}
