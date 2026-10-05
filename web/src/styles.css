@@ -178,6 +178,32 @@ table.grid tr.empty td { text-align: center; color: var(--muted); padding: 16px;
 .footer p { margin: 0 0 6px; max-width: 110ch; }
 .toast { position: fixed; z-index: 50; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 9px 14px; border-radius: var(--radius); box-shadow: var(--shadow); font-size: 12.5px; max-width: calc(100% - 32px); }
 
+/* Indicators dialog (TradingView-style) */
+.modal { position: fixed; inset: 0; z-index: 60; background: rgba(19, 23, 34, .35); display: flex; align-items: flex-start; justify-content: center; padding: 8vh 16px 16px; }
+.modal-box { background: var(--panel); width: min(720px, 100%); max-height: 80vh; border-radius: 8px; box-shadow: var(--shadow); display: flex; flex-direction: column; overflow: hidden; }
+.modal-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px 6px; }
+.modal-head h2 { margin: 0; font-size: 18px; }
+.xclose { border: none; background: transparent; font-size: 22px; line-height: 1; color: var(--ink-2); width: 32px; height: 32px; border-radius: 4px; }
+.xclose:hover { background: var(--panel-2); }
+.modal-search { padding: 6px 18px 10px; border-bottom: 1px solid var(--line); }
+.modal-search input { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 9px 12px; font: 14px var(--font); }
+.modal-search input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.modal-body { display: grid; grid-template-columns: 170px minmax(0, 1fr); min-height: 0; flex: 1; }
+.modal-nav { border-right: 1px solid var(--line); padding: 8px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+.modal-nav button { text-align: left; border: none; background: transparent; padding: 8px 10px; border-radius: 4px; color: var(--ink-2); }
+.modal-nav button:hover { background: var(--panel-2); }
+.modal-nav button.active { background: var(--panel-2); color: var(--ink); font-weight: 500; }
+.ind-list { list-style: none; margin: 0; padding: 6px 0; overflow-y: auto; }
+.ind-list li { display: flex; align-items: center; gap: 10px; padding: 8px 18px; cursor: pointer; }
+.ind-list li:hover, .ind-list li:focus-visible { background: var(--panel-2); outline: none; }
+.ind-list .ind-name { font-weight: 500; }
+.ind-list .ind-about { color: var(--muted); font-size: 12px; }
+.ind-list .ind-meta { margin-left: auto; display: flex; align-items: center; gap: 8px; flex: none; }
+.ind-list .ind-pane { font: 11px var(--mono); color: var(--muted); }
+.ind-list .ind-add { font: 500 12px var(--font); color: var(--accent); border: 1px solid var(--accent-bg); background: var(--accent-bg); border-radius: 4px; padding: 3px 8px; }
+.ind-list li.on .ind-add { color: var(--down); background: var(--down-bg); border-color: var(--down-bg); }
+.ind-list .empty { color: var(--muted); cursor: default; }
+
 /* phones and small tablets: chart full width, tools as a row, order panel below */
 @media (max-width: 900px) {
   .workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 58vh auto; height: auto; min-height: 0; }
@@ -185,5 +211,8 @@ table.grid tr.empty td { text-align: center; color: var(--muted); padding: 16px;
   .toolrail .rail-sep { width: 1px; height: 24px; margin: 0 4px; }
   .orderpanel { border-left: none; border-top: 1px solid var(--line); }
   .proof-grid { grid-template-columns: minmax(0, 1fr); }
+  .modal-body { grid-template-columns: minmax(0, 1fr); }
+  .modal-nav { flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--line); }
+  .modal-nav button { white-space: nowrap; }
   .topbar, .toolbar, .terminal, .orderpanel, .footer { padding-left: 16px; padding-right: 16px; }
 }

@@ -32,8 +32,7 @@
       <div class="tf-group" id="timeframes" role="group" aria-label="Interval"></div>
       <div class="sep"></div>
       <div class="menu-wrap">
-        <button type="button" class="tbtn" id="btnIndicators" aria-haspopup="true" aria-expanded="false">ƒx Indicators ▾</button>
-        <div id="indicatorMenu" class="menu" hidden></div>
+        <button type="button" class="tbtn" id="btnIndicators" aria-haspopup="dialog">ƒx Indicators</button>
       </div>
       <div class="sep"></div>
       <label class="trng" title="OFF: browser randomness (demo). ON: hardware randomness from the ESP32 plugged into this computer (desktop Chrome or Edge).">
@@ -124,6 +123,16 @@
         money, no broker, no execution. Not financial advice and not a trading signal.</p>
       <p class="credits">Charts by <a href="https://github.com/klinecharts/KLineChart" target="_blank" rel="noopener">KLineChart</a> (Apache-2.0), which includes code from <a href="https://www.tradingview.com/" target="_blank" rel="noopener">TradingView</a> Lightweight Charts™. <a href="https://github.com/PraveenBanneka/ghosttape/blob/main/THIRD_PARTY_NOTICES.md" target="_blank" rel="noopener">Licences</a>. Trading rules modelled on MT5 conventions. GhostTape is not affiliated with TradingView or MetaQuotes.</p>
     </footer>
+  </div>
+  <div id="indDialog" class="modal" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="indTitle">
+      <div class="modal-head"><h2 id="indTitle">Indicators</h2><button type="button" class="xclose" id="indClose" aria-label="Close">×</button></div>
+      <div class="modal-search"><input id="indSearch" type="search" placeholder="Search" autocomplete="off" spellcheck="false" aria-label="Search indicators" /></div>
+      <div class="modal-body">
+        <nav class="modal-nav" id="indGroups" aria-label="Indicator groups"></nav>
+        <ul class="ind-list" id="indList" role="listbox" aria-label="Indicators"></ul>
+      </div>
+    </div>
   </div>
   <div id="toast" class="toast" role="status" hidden></div>
   <script type="module" src="/src/main.ts"></script>

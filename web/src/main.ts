@@ -78,7 +78,10 @@ function onPacket(p: Packet): void {
 
 function applyTick(t: Tick, live: boolean): void {
   const updates = series.add(t);
-  if (live) for (const tf of TIMEFRAMES) tape.push(tf.id, updates[tf.id].bar);
+  if (live) for (const tf of TIMEFRAMES) {
+    for (const g of updates[tf.id].gapBars) tape.push(tf.id, g); // keep the real-time gap visible
+    tape.push(tf.id, updates[tf.id].bar);
+  }
   if (t.shift) {
     const src = mode === 'demo' ? 'demo' : 'ESP32';
     account.log(t.time, 'regime', `⚡ regime shift ${t.shift.from} → ${t.shift.to} (rate ${t.shift.rate.toFixed(1)}%, ${src} roll)`);
@@ -504,25 +507,58 @@ $('timeframes').onclick = e => {
   for (const b of $('timeframes').querySelectorAll<HTMLButtonElement>('[data-tf]')) b.classList.toggle('active', b.dataset.tf === tf);
 };
 
-const menu = $('indicatorMenu');
-menu.innerHTML = `<div class="menu-title">On the chart</div>` +
-  INDICATOR_CHOICES.filter(c => c.pane === 'main').map(c => `<label><input type="checkbox" data-ind="${c.name}"${prefs.indicators.includes(c.name) ? ' checked' : ''}> ${c.label}</label>`).join('') +
-  `<div class="menu-title">Bottom panes</div>` +
-  INDICATOR_CHOICES.filter(c => c.pane === 'sub').map(c => `<label><input type="checkbox" data-ind="${c.name}"${prefs.indicators.includes(c.name) ? ' checked' : ''}> ${c.label}</label>`).join('');
-menu.onchange = e => {
-  const t = e.target as HTMLInputElement;
-  const name = t.dataset.ind;
-  if (!name) return;
-  tape.setIndicator(name, t.checked);
-  prefs.indicators = t.checked ? [...new Set([...prefs.indicators, name])] : prefs.indicators.filter(n => n !== name);
-  storage.set(PREFS_KEY, prefs);
+// ---------------------------------------------------------------- Indicators dialog (search, groups, add/remove)
+const GROUPS = ['All', 'Added', 'Trend', 'Volatility', 'Momentum', 'Volume'] as const;
+let indGroup: (typeof GROUPS)[number] = 'All';
+const dialog = $('indDialog');
+const savePrefs = (): void => storage.set(PREFS_KEY, prefs);
+function setIndicatorPref(name: string, on: boolean): void {
+  prefs.indicators = on ? [...new Set([...prefs.indicators, name])] : prefs.indicators.filter(n => n !== name);
+  savePrefs();
+}
+function renderIndicatorList(): void {
+  const q = $<HTMLInputElement>('indSearch').value.trim().toLowerCase();
+  $('indGroups').innerHTML = GROUPS.map(g => `<button type="button" data-g="${g}" class="${g === indGroup ? 'active' : ''}">${g}${g === 'Added' ? ` (${prefs.indicators.length})` : ''}</button>`).join('');
+  const rows = INDICATOR_CHOICES.filter(c =>
+    (indGroup === 'All' || (indGroup === 'Added' ? prefs.indicators.includes(c.name) : c.group === indGroup)) &&
+    (!q || `${c.name} ${c.label} ${c.about}`.toLowerCase().includes(q)));
+  $('indList').innerHTML = rows.map(c => {
+    const on = prefs.indicators.includes(c.name);
+    return `<li role="option" tabindex="0" aria-selected="${on}" data-ind="${c.name}" class="${on ? 'on' : ''}"><div><div class="ind-name">${c.label}</div><div class="ind-about">${c.about}</div></div>` +
+      `<div class="ind-meta"><span class="ind-pane">${c.pane === 'main' ? 'on chart' : 'new pane'}</span><span class="ind-add">${on ? 'Remove' : 'Add'}</span></div></li>`;
+  }).join('') || '<li class="empty">No indicators match.</li>';
+}
+function toggleIndicator(name: string): void {
+  const on = !prefs.indicators.includes(name);
+  tape.setIndicator(name, on);
+  setIndicatorPref(name, on);
+  renderIndicatorList();
+}
+function openIndicators(): void {
+  dialog.hidden = false;
+  $<HTMLInputElement>('indSearch').value = '';
+  renderIndicatorList();
+  $<HTMLInputElement>('indSearch').focus();
+}
+const closeIndicators = (): void => { dialog.hidden = true; $('btnIndicators').focus(); };
+$('btnIndicators').onclick = openIndicators;
+$('indClose').onclick = closeIndicators;
+dialog.onclick = e => { if (e.target === dialog) closeIndicators(); };
+dialog.onkeydown = e => {
+  if (e.key === 'Escape') closeIndicators();
+  const li = (e.target as HTMLElement).closest<HTMLElement>('li[data-ind]');
+  if (li && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleIndicator(li.dataset.ind!); }
 };
-$('btnIndicators').onclick = e => {
-  e.stopPropagation();
-  menu.hidden = !menu.hidden;
-  $('btnIndicators').setAttribute('aria-expanded', String(!menu.hidden));
+$('indSearch').oninput = renderIndicatorList;
+$('indGroups').onclick = e => {
+  const g = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-g]')?.dataset.g as (typeof GROUPS)[number] | undefined;
+  if (g) { indGroup = g; renderIndicatorList(); }
 };
-document.addEventListener('click', e => { if (!menu.hidden && !menu.contains(e.target as Node)) { menu.hidden = true; $('btnIndicators').setAttribute('aria-expanded', 'false'); } });
+$('indList').onclick = e => {
+  const li = (e.target as HTMLElement).closest<HTMLElement>('li[data-ind]');
+  if (li) toggleIndicator(li.dataset.ind!);
+};
+tape.onIndicatorRemoved = name => { setIndicatorPref(name, false); if (!dialog.hidden) renderIndicatorList(); };
 for (const name of prefs.indicators) tape.setIndicator(name, true);
 
 // TRNG switch: OFF = browser randomness (demo), ON = ESP32 hardware over USB (online relay if this browser has no Web Serial)

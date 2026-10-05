@@ -20,6 +20,18 @@ const UP = '#089981', DOWN = '#f23645', FLAT = '#787b86', GRID = '#f0f3fa', TEXT
 // TradingView's UI font stack (sans-serif); KLineChart otherwise falls back to a serif on some systems.
 const FONT = '-apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif';
 
+// TradingView-style legend buttons on every indicator: eye (hide/show) and x (remove). 14 px paths.
+const legendButton = (id: string, path: string) => ({
+  id, position: 'middle' as const, type: 'path' as const, size: 14,
+  marginLeft: 6, marginTop: 0, marginRight: 0, paddingLeft: 2, paddingTop: 2, paddingRight: 2, paddingBottom: 2,
+  color: '#787b86', activeColor: '#131722', backgroundColor: 'transparent', activeBackgroundColor: '#e0e3eb', borderRadius: 3,
+  content: { style: 'stroke' as const, lineWidth: 1.2, path },
+});
+const LEGEND_BUTTONS = [
+  legendButton('visible', 'M1 7C2.8 3.8 4.8 2.6 7 2.6S11.2 3.8 13 7C11.2 10.2 9.2 11.4 7 11.4S2.8 10.2 1 7ZM7 5.1A1.9 1.9 0 1 0 7 8.9A1.9 1.9 0 1 0 7 5.1Z'),
+  legendButton('remove', 'M3 3L11 11M11 3L3 11'),
+];
+
 const STYLES: DeepPartial<Styles> = {
   grid: { horizontal: { color: GRID }, vertical: { color: GRID } },
   candle: {
@@ -38,7 +50,7 @@ const STYLES: DeepPartial<Styles> = {
     ohlc: { upColor: UP, downColor: DOWN, noChangeColor: FLAT },
     bars: [{ upColor: 'rgba(8,153,129,.55)', downColor: 'rgba(242,54,69,.55)', noChangeColor: FLAT }],
     lastValueMark: { text: { family: FONT } },
-    tooltip: { title: { family: FONT, color: '#131722' }, legend: { family: FONT } },
+    tooltip: { title: { family: FONT, color: '#131722' }, legend: { family: FONT }, features: LEGEND_BUTTONS },
   },
   xAxis: { tickText: { color: TEXT, family: FONT } },
   yAxis: { tickText: { color: TEXT, family: FONT } },
@@ -56,6 +68,8 @@ export class TapeChart {
   readonly chart: Chart;
   tf: Timeframe['id'];
   private subscriber: ((k: KLineData) => void) | null = null;
+  /** called when the user removes an indicator from its legend (x button) */
+  onIndicatorRemoved: (name: string) => void = () => {};
 
   constructor(el: HTMLElement, private readonly barsFor: (tf: Timeframe['id']) => Candle[], tf: Timeframe['id']) {
     registerCustomIndicators();
@@ -73,6 +87,16 @@ export class TapeChart {
       unsubscribeBar: () => { this.subscriber = null; },
     });
     new ResizeObserver(() => chart.resize()).observe(el);
+    chart.subscribeAction('onIndicatorTooltipFeatureClick', data => {
+      const d = data as { paneId: string; feature: { id: string }; indicator?: { name: string; visible: boolean } };
+      if (!d.indicator) return;
+      if (d.feature.id === 'remove') {
+        chart.removeIndicator({ paneId: d.paneId, name: d.indicator.name });
+        this.onIndicatorRemoved(d.indicator.name);
+      } else if (d.feature.id === 'visible') {
+        chart.overrideIndicator({ name: d.indicator.name, paneId: d.paneId, visible: !d.indicator.visible });
+      }
+    });
   }
 
   setTimeframe(tf: Timeframe['id']): void {

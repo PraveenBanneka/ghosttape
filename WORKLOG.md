@@ -159,3 +159,13 @@
 - TRNG switch (Praveen: "a simple switch there to turn trng on"): replaces Connect ESP32 / Demo entropy.
   OFF = browser randomness (demo); ON = ESP32 over Web Serial (port picker; cancel flips it back off); browsers
   without Web Serial use the online relay. Deployed **630b926e-8056-4dba-82ae-6251311c5a88**; live HTML has the switch.
+
+## 2026-10-05 — Praveen's live ESP32 test + fixes from his recording (21:28)
+- His recording shows TRNG on · ESP32, LIVE · ESP32 hardware entropy, 6.4/s, unplug/replug resumes: Phase C works on
+  the real board in his browser.
+- Fixes he asked for: (1) indicator legends get TradingView-style eye (hide/show) and x (remove) buttons
+  (KLineChart tooltip features + onIndicatorTooltipFeatureClick; removal persists in prefs); (2) a searchable
+  TradingView-style Indicators dialog (search, groups All/Added/Trend/Volatility/Momentum/Volume, Add/Remove) with
+  all 29 indicators (KLineChart built-ins + our ATR and EMA bands); (3) "it should keep the real time gap": on resume,
+  missed buckets get flat gap candles at the frozen price with zero volume (up to 900 per timeframe; longer outages jump).
+- Tests: web 56/56 (new gap tests), relay 36/36, worker tsc clean. Browser-checked: legend x removes ATR + saves pref.

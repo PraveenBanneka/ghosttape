@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { gaussian, seededPackets, TWO32, u1, u2, uc } from '../src/model/random';
 import { REGIMES, rollRegime, switchProbability } from '../src/model/regime';
 import { DEFAULT_TIME_SCALE, PRICE_DECIMALS, SINGLE_REGIME, STEPS_PER_ROLL, TapeEngine } from '../src/model/engine';
-import { CandleSeries, MultiSeries, syntheticVolume, TIMEFRAMES } from '../src/model/aggregator';
+import { CandleSeries, MAX_GAP_BARS, MultiSeries, syntheticVolume, TIMEFRAMES } from '../src/model/aggregator';
 import { parseLine, SeqTracker } from '../src/model/packet';
 import { LIMITS, parseJsonc } from '../src/config';
 
@@ -92,13 +92,23 @@ describe('wall-clock candles', () => {
     expect([b.timestamp, b.open, b.high, b.low, b.close, b.ticks]).toEqual([5000, 100, 101, 99, 100.1, 7]);
     expect(b.volume).toBe(syntheticVolume(7, 100, 100.1));
   });
-  it('opens a new bar per bucket, open = previous close, and skips empty buckets', () => {
+  it('opens a new bar per bucket (open = previous close) and keeps the real-time gap with flat bars', () => {
     const s = new CandleSeries(TIMEFRAMES[1]); // 10s
     s.add(tick(1000, 100, 101));
     s.add(tick(12000, 101, 102));
-    s.add(tick(45000, 102, 103)); // 20-40s had no entropy -> no bars there
-    expect(s.bars.map(b => b.timestamp)).toEqual([0, 10000, 40000]);
+    const r = s.add(tick(45000, 102, 103)); // 20-40s had no entropy
+    expect(s.bars.map(b => b.timestamp)).toEqual([0, 10000, 20000, 30000, 40000]);
+    expect(r.gapBars.map(b => b.timestamp)).toEqual([20000, 30000]);
+    for (const g of r.gapBars) expect([g.open, g.high, g.low, g.close, g.volume, g.ticks, g.gap]).toEqual([102, 102, 102, 102, 0, 0, true]);
     expect(s.bars[1].open).toBe(101);
+    expect(s.bars[4].open).toBe(102);
+  });
+  it('does not fill outages longer than MAX_GAP_BARS (e.g. a session restored the next day)', () => {
+    const s = new CandleSeries(TIMEFRAMES[0]); // 1s
+    s.add(tick(0, 100, 100));
+    const r = s.add(tick((MAX_GAP_BARS + 5) * 1000, 100, 101));
+    expect(r.gapBars).toHaveLength(0);
+    expect(s.bars).toHaveLength(2);
   });
   it('feeds all five timeframes from one stream', () => {
     const m = new MultiSeries();
