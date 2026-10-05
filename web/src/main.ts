@@ -236,6 +236,11 @@ async function connectEsp32(): Promise<void> {
 }
 
 // ---------------------------------------------------------------- online relay (viewer + USB bridge)
+function syncRateSlider(): void {
+  $<HTMLInputElement>('rate').value = String(engine.rate);
+  $('rateVal').textContent = `${engine.rate.toFixed(1)}%`;
+}
+
 function relayFeed(s: RelayStatus): void {
   const live = s.online_enabled && s.uplink === 'up' && !s.frozen;
   feedState = live ? 'live' : 'offline';
@@ -257,6 +262,7 @@ function useOnline(keepSerial = false): void {
     snapshot: s => {
       resetState('online');
       engine = TapeEngine.from(s.engine);
+      syncRateSlider();
       for (const tf of TIMEFRAMES) series.series[tf.id].bars.push(...(s.candles[tf.id] ?? []));
       startPrice = series.series['5m'].bars[0]?.open ?? engine.price;
       tape.reload();
@@ -530,11 +536,16 @@ $('btnDemo').onclick = () => void useDemo();
 $('btnOnline').onclick = () => useOnline();
 $('btnBridge').onclick = () => shareOnline();
 $('rate').oninput = e => {
+  if (mode === 'online') { // the shared tape's rate belongs to the relay; changing it locally would desync this viewer
+    syncRateSlider();
+    toast('In online mode the central bank rate is shared by every viewer and set by the relay.');
+    return;
+  }
   const v = Number((e.target as HTMLInputElement).value);
   engine.rate = v;
   $('rateVal').textContent = `${v.toFixed(1)}%`;
 };
-$('rate').onchange = () => log('info', `central bank rate set to ${engine.rate.toFixed(1)}%`);
+$('rate').onchange = () => { if (mode !== 'online') log('info', `central bank rate set to ${engine.rate.toFixed(1)}%`); };
 $('btnProof').onclick = () => {
   const p = $('proof');
   p.hidden = !p.hidden;

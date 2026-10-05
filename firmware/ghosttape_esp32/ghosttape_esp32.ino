@@ -24,11 +24,30 @@
 // CAPTURE_MODE = 1 turns the board into a raw entropy pump for statistical tests:
 // it writes binary uint32s as fast as possible (pipe to a file, then run ent/dieharder).
 // The same radio verification gates it; status is shown on the LED only (no text in the binary stream).
+// CAPTURE_MODE + RADIO_OFF_CONTROL (both = 1) is the pseudo-random control capture: Wi-Fi off, stream anyway.
+// Both flags default to 0 and are set with -D on the compile command line (see the build-flag block below).
 
 #include <WiFi.h>
 #include <esp_wifi.h>
 
+// Build flags. Defaults = the live tape. Capture builds set them on the command line instead of
+// editing this file, e.g. arduino-cli compile ... --build-property "compiler.cpp.extra_flags=-DCAPTURE_MODE=1"
+#ifndef CAPTURE_MODE
 #define CAPTURE_MODE 0
+#endif
+
+// RADIO_OFF_CONTROL = 1 (only together with CAPTURE_MODE = 1) is the HONESTY CONTROL for the randomness
+// proof: it keeps Wi-Fi OFF (WiFi.mode(WIFI_OFF)), skips the radio verification and streams anyway, so we
+// can capture esp_random() in the state Espressif calls pseudo-random and show that statistical tests
+// cannot tell it apart from the true-random capture. It must never feed the live tape, so a live build
+// (CAPTURE_MODE 0) with this flag refuses to compile.
+#ifndef RADIO_OFF_CONTROL
+#define RADIO_OFF_CONTROL 0
+#endif
+#if RADIO_OFF_CONTROL && !CAPTURE_MODE
+#error "RADIO_OFF_CONTROL=1 is only allowed with CAPTURE_MODE=1 (pseudo-random control capture, never the live tape)"
+#endif
+
 static const uint32_t PACKET_MS = 160;          // 8 packets per candle -> about 1.3 s per candle
 static const uint32_t RECHECK_MS = 30000;       // re-verify the radio this often while streaming
 static const uint32_t RETRY_MS = 5000;          // when not verified, retry this often
@@ -76,6 +95,14 @@ void setup() {
 #if !CAPTURE_MODE
   Serial.println("GT1,HELLO");
 #endif
+#if RADIO_OFF_CONTROL
+  // Pseudo-random control capture: radio deliberately OFF, no verification, stream anyway.
+  // LED stays off because the true-random condition is NOT met.
+  WiFi.mode(WIFI_OFF);
+  radioOk = true;                                 // here "ok" only means "allowed to stream" (capture build)
+  lastCheckAt = millis();
+  return;
+#endif
   const char* why = "";
   radioOk = bringUpRadio(&why);
   reportStatus(radioOk, why);
@@ -94,7 +121,7 @@ void loop() {
     delay(50);
     return;
   }
-  if (now - lastCheckAt >= RECHECK_MS) {
+  if (!RADIO_OFF_CONTROL && now - lastCheckAt >= RECHECK_MS) {   // control capture never re-checks
     const char* why = "";
     radioOk = radioConfigured(&why);
     reportStatus(radioOk, why);

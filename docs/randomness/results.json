@@ -1,0 +1,320 @@
+{
+ "generated": "2026-10-05 20:54",
+ "bytes_per_source": 10485760,
+ "seed": 20261005,
+ "alpha": 0.01,
+ "results": {
+  "ESP32 radio ON": {
+   "Byte chi-square": {
+    "ok": true,
+    "p": 0.2583739669498292,
+    "show": "chi2=269 p=0.258"
+   },
+   "Shannon entropy": {
+    "ok": true,
+    "p": null,
+    "show": "7.999981 bit"
+   },
+   "Serial correlation": {
+    "ok": true,
+    "p": 0.1372095508940833,
+    "show": "r=+0.00046 p=0.137"
+   },
+   "Monte-Carlo pi": {
+    "ok": true,
+    "p": 0.41252229079273495,
+    "show": "3.14261 p=0.413"
+   },
+   "NIST frequency": {
+    "ok": true,
+    "p": 0.7504849369093287,
+    "show": "p=0.750 10/10"
+   },
+   "NIST block frequency": {
+    "ok": true,
+    "p": 0.18535204545294504,
+    "show": "p=0.185 10/10"
+   },
+   "NIST runs": {
+    "ok": true,
+    "p": 0.5769134005783834,
+    "show": "p=0.577 10/10"
+   },
+   "NIST approximate entropy": {
+    "ok": true,
+    "p": 0.2626548709872091,
+    "show": "p=0.263 10/10"
+   },
+   "Autocorrelation 1-32": {
+    "ok": true,
+    "p": 0.6402910025926809,
+    "show": "max abs r=0.00072 p=0.640"
+   },
+   "3D triples chi-square": {
+    "ok": true,
+    "p": 0.4015969993882998,
+    "show": "chi2=4117 p=0.402"
+   }
+  },
+  "ESP32 radio OFF": {
+   "Byte chi-square": {
+    "ok": true,
+    "p": 0.09275689842652901,
+    "show": "chi2=285 p=0.093"
+   },
+   "Shannon entropy": {
+    "ok": true,
+    "p": null,
+    "show": "7.999980 bit"
+   },
+   "Serial correlation": {
+    "ok": true,
+    "p": 0.3516956123230579,
+    "show": "r=-0.00029 p=0.352"
+   },
+   "Monte-Carlo pi": {
+    "ok": true,
+    "p": 0.3590813306481333,
+    "show": "3.14273 p=0.359"
+   },
+   "NIST frequency": {
+    "ok": true,
+    "p": 0.3964379707320952,
+    "show": "p=0.396 10/10"
+   },
+   "NIST block frequency": {
+    "ok": true,
+    "p": 0.3668213949481033,
+    "show": "p=0.367 10/10"
+   },
+   "NIST runs": {
+    "ok": true,
+    "p": 0.8377914786556763,
+    "show": "p=0.838 10/10"
+   },
+   "NIST approximate entropy": {
+    "ok": true,
+    "p": 0.39688547706904803,
+    "show": "p=0.397 10/10"
+   },
+   "Autocorrelation 1-32": {
+    "ok": true,
+    "p": 0.10919209743503265,
+    "show": "max abs r=0.00090 p=0.109"
+   },
+   "3D triples chi-square": {
+    "ok": true,
+    "p": 0.5010575016887406,
+    "show": "chi2=4094 p=0.501"
+   }
+  },
+  "MT19937": {
+   "Byte chi-square": {
+    "ok": true,
+    "p": 0.7268883302092043,
+    "show": "chi2=241 p=0.727"
+   },
+   "Shannon entropy": {
+    "ok": true,
+    "p": null,
+    "show": "7.999983 bit"
+   },
+   "Serial correlation": {
+    "ok": true,
+    "p": 0.2630248684143436,
+    "show": "r=-0.00035 p=0.263"
+   },
+   "Monte-Carlo pi": {
+    "ok": true,
+    "p": 0.622424651103968,
+    "show": "3.14098 p=0.622"
+   },
+   "NIST frequency": {
+    "ok": true,
+    "p": 0.08689666846053255,
+    "show": "p=0.087 10/10"
+   },
+   "NIST block frequency": {
+    "ok": true,
+    "p": 0.7072198456790973,
+    "show": "p=0.707 10/10"
+   },
+   "NIST runs": {
+    "ok": true,
+    "p": 0.5857049252886852,
+    "show": "p=0.586 10/10"
+   },
+   "NIST approximate entropy": {
+    "ok": true,
+    "p": 0.39553513677964974,
+    "show": "p=0.396 10/10"
+   },
+   "Autocorrelation 1-32": {
+    "ok": true,
+    "p": 1.0,
+    "show": "max abs r=0.00054 p=1.000"
+   },
+   "3D triples chi-square": {
+    "ok": true,
+    "p": 0.8685883688057042,
+    "show": "chi2=3994 p=0.869"
+   }
+  },
+  "PCG64": {
+   "Byte chi-square": {
+    "ok": true,
+    "p": 0.18093852112732509,
+    "show": "chi2=275 p=0.181"
+   },
+   "Shannon entropy": {
+    "ok": true,
+    "p": null,
+    "show": "7.999981 bit"
+   },
+   "Serial correlation": {
+    "ok": true,
+    "p": 0.9444205926532899,
+    "show": "r=+0.00002 p=0.944"
+   },
+   "Monte-Carlo pi": {
+    "ok": true,
+    "p": 0.03721138838494554,
+    "show": "3.14418 p=0.037"
+   },
+   "NIST frequency": {
+    "ok": true,
+    "p": 0.9585286934154394,
+    "show": "p=0.959 10/10"
+   },
+   "NIST block frequency": {
+    "ok": true,
+    "p": 0.5631218498798432,
+    "show": "p=0.563 10/10"
+   },
+   "NIST runs": {
+    "ok": true,
+    "p": 0.8010431533269775,
+    "show": "p=0.801 10/10"
+   },
+   "NIST approximate entropy": {
+    "ok": true,
+    "p": 0.18490558374973676,
+    "show": "p=0.185 10/10"
+   },
+   "Autocorrelation 1-32": {
+    "ok": true,
+    "p": 0.04408680579722221,
+    "show": "max abs r=0.00099 p=0.044"
+   },
+   "3D triples chi-square": {
+    "ok": true,
+    "p": 0.9835838468887229,
+    "show": "chi2=3904 p=0.984"
+   }
+  },
+  "os.urandom": {
+   "Byte chi-square": {
+    "ok": true,
+    "p": 0.043708070465829585,
+    "show": "chi2=295 p=0.044"
+   },
+   "Shannon entropy": {
+    "ok": true,
+    "p": null,
+    "show": "7.999980 bit"
+   },
+   "Serial correlation": {
+    "ok": true,
+    "p": 0.21510384444870767,
+    "show": "r=+0.00038 p=0.215"
+   },
+   "Monte-Carlo pi": {
+    "ok": true,
+    "p": 0.513346664904444,
+    "show": "3.14240 p=0.513"
+   },
+   "NIST frequency": {
+    "ok": true,
+    "p": 0.6283858691213033,
+    "show": "p=0.628 10/10"
+   },
+   "NIST block frequency": {
+    "ok": true,
+    "p": 0.31210501949264174,
+    "show": "p=0.312 10/10"
+   },
+   "NIST runs": {
+    "ok": true,
+    "p": 0.5393700419538647,
+    "show": "p=0.539 10/10"
+   },
+   "NIST approximate entropy": {
+    "ok": true,
+    "p": 0.09465362652253967,
+    "show": "p=0.095 10/10"
+   },
+   "Autocorrelation 1-32": {
+    "ok": true,
+    "p": 1.0,
+    "show": "max abs r=0.00061 p=1.000"
+   },
+   "3D triples chi-square": {
+    "ok": true,
+    "p": 0.781146690468836,
+    "show": "chi2=4025 p=0.781"
+   }
+  },
+  "RANDU": {
+   "Byte chi-square": {
+    "ok": true,
+    "p": 0.08598971615670283,
+    "show": "chi2=286 p=0.086"
+   },
+   "Shannon entropy": {
+    "ok": true,
+    "p": null,
+    "show": "7.999980 bit"
+   },
+   "Serial correlation": {
+    "ok": true,
+    "p": 0.8333732895032849,
+    "show": "r=-0.00006 p=0.833"
+   },
+   "Monte-Carlo pi": {
+    "ok": true,
+    "p": 0.6420897385034108,
+    "show": "3.14102 p=0.642"
+   },
+   "NIST frequency": {
+    "ok": true,
+    "p": 0.3897890425036168,
+    "show": "p=0.390 10/10"
+   },
+   "NIST block frequency": {
+    "ok": true,
+    "p": 0.3719742894934217,
+    "show": "p=0.372 10/10"
+   },
+   "NIST runs": {
+    "ok": true,
+    "p": 0.8786035417721769,
+    "show": "p=0.879 10/10"
+   },
+   "NIST approximate entropy": {
+    "ok": true,
+    "p": 0.5163197436672101,
+    "show": "p=0.516 10/10"
+   },
+   "Autocorrelation 1-32": {
+    "ok": true,
+    "p": 0.049220665642457605,
+    "show": "max abs r=0.00098 p=0.049"
+   },
+   "3D triples chi-square": {
+    "ok": false,
+    "p": 0.0,
+    "show": "chi2=1323179 p<1e-300"
+   }
+  }
+ }
+}

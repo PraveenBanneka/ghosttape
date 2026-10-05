@@ -123,3 +123,18 @@
 - Online client in the terminal: "Watch online" (RelayViewer: snapshot + per-packet shared-engine replay, own
   400 ms watchdog, drift check against the relay tick) and "Share ESP32 online" (RelayBridge forwards raw serial
   lines verbatim; SerialSource.onLine tap). Serial packets never step the local engine while in online mode.
+
+## 2026-10-05 — Phase D: randomness proof (parallel agent), board restored to live firmware
+- Firmware: CAPTURE_MODE behind #ifndef; new RADIO_OFF_CONTROL (capture builds only; `#error` if used live, tested).
+  tools/capture.py: no reset on open, waits for data, discards first 1 s, 64 KB reads, prints KB/s.
+- Captures (data/, git-ignored): esp32_radio_on.bin 10 MB, esp32_radio_off.bin 10 MB (control), esp32_radio_on_2.bin 1 MB;
+  113.7 s each at 90.1 KB/s (921,600 baud line rate); no boot text inside.
+- notebooks/randomness_proof.ipynb (executed, 746 KB; local + Colab upload path) and docs/randomness/RESULTS.md + figures.
+  ESP32 ON 10/10, ESP32 OFF 10/10, MT19937 10/10, PCG64 10/10, os.urandom 10/10, RANDU 9/10 (only the 3D-triples
+  test catches it: 15 planes). Two ESP32 captures share nothing (0.388% byte matches vs 0.391% chance). Honest
+  conclusion: tests show "no detectable pattern"; the true-random claim rests on Espressif's condition + radio
+  verification. ent/dieharder only in the notebook's Colab section (not run locally, untested in Colab).
+- After re-flashing live firmware: phase1-check PASS (GT1,INFO,radio=on,ps=none,aps=2; 1000/1000, 0 gaps).
+- Online mode browser-tested locally (wrangler dev on 8799 with the local override; 8787 was taken by Praveen's
+  separate "Fair Map" project dev server, left untouched): two viewers LIVE from a simulated signed uplink, both froze
+  at the identical price 189.970 within 400 ms of the uplink stopping. Rate slider locked in online mode (shared).
