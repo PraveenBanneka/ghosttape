@@ -47,7 +47,7 @@ not real market data" + no-advice notice always visible. Ask before changing mod
 | Proof | Google Colab notebook: ESP32 vs MT19937, PCG64, OS CSPRNG, RANDU (known-bad control). Honest framing: tests show "no detectable pattern"; "true" randomness rests on the physical source |
 | Online mode | On demand only; switched by Praveen in `limits.jsonc` |
 | Dropped | Prototype's real CSE price panel |
-| GitHub | `PraveenBanneka/ghosttape`; public/private **not decided yet**, ask at creation (GO) |
+| GitHub | `PraveenBanneka/ghosttape`, private. Go public after Phase B or D (owner decision); public is a one-way door |
 
 ## Owner-only limits: `limits.jsonc`
 All quota switches and caps (online on/off, minutes/day, messages/day, DO GB-s/day, viewers, Firecrawl calls per
@@ -70,7 +70,7 @@ if run 24/7 = ~26k billed requests (20:1) of 100k/day, and ~10,800 of 13,000 GB-
 | Staging | none (no online target is "safe to break" until a separate one exists) |
 | Production | Worker `ghosttape` (not created yet) → `ghosttape.teamkestrel.workers.dev`. The workers.dev subdomain is account-wide; renaming it would change ZedPath's URL, so never |
 | Names reserved for GhostTape | Worker `ghosttape`, D1 `ghosttape-history` (only if Phase E needs it), rate-limit namespaces 2001/2002 |
-| GitHub | `github.com/PraveenBanneka/ghosttape` (not created). The ONLY repo this project may create or push to |
+| GitHub | `github.com/PraveenBanneka/ghosttape`, **PRIVATE** (created 2026-10-05 on "GO private"). The ONLY repo this project may push to; every push needs GO. Before ever going public: move the salon references out of public files |
 | Git identity (repo-local) | `PraveenBanneka` / `279389974+PraveenBanneka@users.noreply.github.com` |
 
 Wrangler has ONE login for the whole laptop; the pinned `account_id` is what stops a deploy landing on the wrong

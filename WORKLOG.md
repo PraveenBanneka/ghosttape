@@ -3,11 +3,11 @@
 ## State block (keep current; a cold session recovers from this)
 - **Phase:** Stage 0 done + **Phase 1 PASSED with radio verification** (2026-10-05). Nothing deployed, no GitHub repo, no push.
 - **Waiting on Praveen:** (1) run `node tools/lock-limits.cjs` once so `npm test` goes green;
-  (2) reply `GO public` or `GO private` to create `PraveenBanneka/ghosttape` and push;
+  (2) [done] repo created PRIVATE + 4 commits pushed (2026-10-05, "GO private");
   (3) restart Claude in this folder so the guard hook goes live (it isn't loaded in the setup session).
 - **Next:** Phase A engine + tests → chart-library spike → Phase B terminal.
 - **Hardware:** ESP32-D0WD-V3 rev 3.1 on COM5 (CP210x). Arduino IDE 2 + esp32 core 3.3.0 installed.
-- **Open question:** GitHub repo public or private (ask at creation, GO-gated).
+- **GitHub:** https://github.com/PraveenBanneka/ghosttape (PRIVATE). Pushes need GO.
 
 ## 2026-10-05 — Day one: plan approved, Stage 0
 - Read: root spec (25 Sep), `ghosttape/CLAUDE.md` + prototype, the artifact (same as prototype), ZedPath's
@@ -54,3 +54,7 @@
 - Result: **PASS**. `GT1,INFO,radio=on,ps=none,aps=5,up=153` (scan found 5 nearby networks = radio receiving);
   6 INFO, 0 ERR; 1000/1000 packets, 0 gaps, 0 restarts, 6.25/s; 48,109 ones / 96,000 bits, z = +0.70.
   The 8 "malformed" lines are the ESP32 ROM bootloader's reset banner, not packet corruption.
+
+## 2026-10-05 — GitHub repo created
+- "GO private" -> `gh repo create PraveenBanneka/ghosttape --private --source . --push`. Leak scan clean on push.
+  GitHub reports PRIVATE; commits 57bcfe9..1a13df3 on main. Public later = one-way door; scrub salon refs first.
