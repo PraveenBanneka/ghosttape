@@ -205,3 +205,11 @@
   calls (no live check on load, TRNG switch goes straight to local Web Serial) and hides Watch online / Share.
 - Deployed e90c2449-9bb0-4344-8590-e7780d2223d9. Verified in headless Chrome on the live URL: 5 requests, 0 to /api
   (all static = free). `npm run online:on` rebuilds with the switch on, which brings the live features back.
+
+## 2026-10-06 — Tried to close direct /api/* hits; did NOT work (reported honestly)
+- Set assets.run_worker_first=false (deployed f300568e) and probed the live URL directly: /api/state still returned the
+  Worker JSON (plain, cors and navigate requests). Cloudflare forwards any path with no matching asset to the Worker
+  when a Worker script exists; not_found_handling does not stop that. Reverted the config (deployed 64ba5003).
+- Truly-zero options put to Praveen: (A) serve the site from a separate assets-only Worker (new link, no deletion);
+  (B) make "ghosttape" assets-only, which deletes the never-used, empty TapeRelay Durable Object class (needs his
+  explicit OK, rule 7); (C) leave it (only deliberate direct /api hits can cost requests; $0, but shared daily cap).
