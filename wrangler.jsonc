@@ -7,10 +7,10 @@
   // Shared with ZedPath. Deploys must target THIS id only (CLAUDE.md rule 3).
   "account_id": "e6474e41044c5722ad57c3372ab7492e",
   "compatibility_date": "2026-10-01",
-  // Public URL switched OFF on 2026-10-05 at Praveen's request ("off"). To bring the site back with the same link:
-  // set both to true and run `npx wrangler deploy`. Nothing was deleted.
-  "workers_dev": false,
-  "preview_urls": false,
+  // Public URL: switched off 2026-10-05, back ON 2026-10-06 at Praveen's request. To take it offline again:
+  // set both to false and run `npx wrangler deploy` (nothing gets deleted).
+  "workers_dev": true,
+  "preview_urls": true,
   // node:crypto (synchronous HMAC in worker/src/hmac.ts).
   "compatibility_flags": ["nodejs_compat"],
 

@@ -3,7 +3,7 @@
 ## State block (keep current; a cold session recovers from this)
 - **Status (2026-10-05 end of day):** all phases built (0, 1, A-F) and committed/pushed to the PRIVATE repo
   github.com/PraveenBanneka/ghosttape. ESP32 live mode verified by Praveen in his browser (TRNG switch on, unplug/replug).
-- **Live site: OFF** (Praveen's choice). workers_dev/preview_urls false; URL returns 404; nothing deleted. Last public
+- **Live site: ON** again since 2026-10-06 (version 17c6ab20). Was off 2026-10-05 evening. Last public
   version 34471865. To restore: set both flags true + `npx wrangler deploy`. Online mode OFF in limits.jsonc.
 - **Model:** GBP/JPY-like clock (k = 1.4M, start 190.000, 3 decimals), driftless GBM, no regimes/rates (c word unused).
 - **Run locally:** `cd web && npm run dev` -> http://localhost:5173 (TRNG switch works with the ESP32 on COM5 in Chrome/Edge).
@@ -181,3 +181,7 @@
   ("No targets deployed"). Verified: https://ghosttape.teamkestrel.workers.dev/ and /api/state -> 404 (Cloudflare
   error 1042). Nothing deleted: the Worker, its Durable Object and the last good build stay in the account.
 - To bring it back with the same link: set both flags to true, `npx wrangler deploy` (last public version: 34471865).
+
+## 2026-10-06 — Public URL back ON (Praveen: "activate it first")
+- workers_dev/preview_urls true; deployed 17c6ab20-9772-4151-bfe1-e941bfbb61d9. Verified home 200 with the TRNG switch,
+  /learn 200, /api/state online_enabled=false. Online mode still OFF (limits.jsonc), so usage stays ~0.
