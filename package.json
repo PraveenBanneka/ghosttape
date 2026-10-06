@@ -9,7 +9,10 @@
     "worker:dev": "wrangler dev",
     "worker:check": "tsc -p worker/tsconfig.json",
     "worker:test": "vitest run --config worker/vitest.config.mts",
-    "worker:e2e": "node worker/test/e2e.mjs"
+    "worker:e2e": "node worker/test/e2e.mjs",
+    "online:on": "node tools/online-switch.cjs on",
+    "online:off": "node tools/online-switch.cjs off",
+    "bridge": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/bridge.ps1"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261005.1",
