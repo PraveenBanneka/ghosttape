@@ -198,3 +198,10 @@
   else local Web Serial. Page shows "real ESP32 is streaming right now" banner when live (1 request per page load).
   Deployed 792bbcf6-0306-4ca6-a44f-9a9d839ecfca.
 - Waiting on Praveen: set "online_enabled": true in limits.jsonc (owner-only). Then redeploy + start the bridge.
+
+## 2026-10-06 — Zero API calls while online is off (Praveen: "disable that, or itll incur usage")
+- Checked first: online_enabled false (file + live), no bridge process running.
+- Removed the last per-visitor cost: the page now reads the bundled owner switch; while online is off it makes NO /api
+  calls (no live check on load, TRNG switch goes straight to local Web Serial) and hides Watch online / Share.
+- Deployed e90c2449-9bb0-4344-8590-e7780d2223d9. Verified in headless Chrome on the live URL: 5 requests, 0 to /api
+  (all static = free). `npm run online:on` rebuilds with the switch on, which brings the live features back.

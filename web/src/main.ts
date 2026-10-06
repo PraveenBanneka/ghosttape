@@ -231,7 +231,7 @@ async function connectEsp32(): Promise<void> {
   stopOnline();
   source?.stop();
   source = serialSrc = next;
-  $('btnBridge').hidden = false;
+  $('btnBridge').hidden = !LIMITS.online_enabled; // sharing only exists while online mode is on
   const saved = storage.get<SavedSession>(SESSION_KEY);
   if (mode === 'esp32' && saved?.mode === 'esp32') log('entropy', 'ESP32 reconnected to the existing ESP32 session');
   else newSession('esp32');
@@ -569,6 +569,7 @@ function syncTrngSwitch(): void {
 }
 /** Is the owner's ESP32 streaming to the online relay right now? (one Worker request; false on any error) */
 async function onlineLive(): Promise<boolean> {
+  if (!LIMITS.online_enabled) return false; // owner switch off: never call the API (0 Cloudflare requests)
   try {
     const s = await (await fetch('/api/state?candles=0', { cache: 'no-store' })).json() as { online_enabled?: boolean; uplink_connected?: boolean };
     return !!(s.online_enabled && s.uplink_connected);
@@ -579,13 +580,16 @@ trng.onchange = async () => {
   if (trng.checked) {
     if (await onlineLive()) useOnline();
     else if (webSerialSupported()) await connectEsp32();
-    else useOnline(); // shows "online mode is off" / "uplink down" honestly
+    else if (LIMITS.online_enabled) useOnline(); // shows "uplink down" honestly
+    else renderFeed('demo', 'TRNG needs the ESP32 plugged into this computer (desktop Chrome or Edge). Live online sharing is currently off.');
   } else {
     await useDemo();
   }
   syncTrngSwitch(); // a cancelled port picker leaves the tape in demo mode, so the switch flips back off
 };
 setInterval(syncTrngSwitch, 1000);
+// online buttons only exist while the owner has online mode on (limits.jsonc is bundled at build time)
+if (!LIMITS.online_enabled) { $('btnOnline').hidden = true; $('btnBridge').hidden = true; }
 // Tell visitors when the real chip is live (one request per page load).
 void onlineLive().then(live => {
   if (live && mode === 'demo') renderFeed('demo', 'The real ESP32 hardware tape is streaming right now: flip TRNG on to watch it live.');
