@@ -185,3 +185,16 @@
 ## 2026-10-06 — Public URL back ON (Praveen: "activate it first")
 - workers_dev/preview_urls true; deployed 17c6ab20-9772-4151-bfe1-e941bfbb61d9. Verified home 200 with the TRNG switch,
   /learn 200, /api/state online_enabled=false. Online mode still OFF (limits.jsonc), so usage stays ~0.
+
+## 2026-10-06 — Real randomness for visitors: signing, secret, bridge, TRNG switch (online still OFF)
+- Praveen: "make it so they can see the real randomness".
+- Firmware signs every packet (GT1S, HMAC-SHA256 first 8 hex) when the git-ignored secrets.h exists; key generated
+  locally and never printed. Flashed; phase1-check now verifies every HMAC: 300/300 signed, 0 bad, radio INFO ok.
+- `wrangler secret put DEVICE_SECRET` piped from secrets.h (not shown); `secret list` shows it.
+- tools/bridge.ps1: PowerShell (.NET SerialPort + ClientWebSocket, no installs) forwards each serial line to
+  wss://.../api/ingest immediately; stops on GT1,CMD,pause; reboots the board first so the relay sees HELLO.
+  Tested against the LIVE relay: connected, relay replied pause(offline), bridge stopped cleanly (online is off).
+- TRNG switch: ON now checks /api/state; if the owner's ESP32 is streaming online -> watch the shared live tape,
+  else local Web Serial. Page shows "real ESP32 is streaming right now" banner when live (1 request per page load).
+  Deployed 792bbcf6-0306-4ca6-a44f-9a9d839ecfca.
+- Waiting on Praveen: set "online_enabled": true in limits.jsonc (owner-only). Then redeploy + start the bridge.

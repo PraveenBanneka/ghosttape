@@ -567,15 +567,29 @@ function syncTrngSwitch(): void {
   trng.checked = mode !== 'demo';
   $('trngState').textContent = mode === 'demo' ? 'off · browser' : mode === 'online' ? 'on · online ESP32' : 'on · ESP32';
 }
+/** Is the owner's ESP32 streaming to the online relay right now? (one Worker request; false on any error) */
+async function onlineLive(): Promise<boolean> {
+  try {
+    const s = await (await fetch('/api/state?candles=0', { cache: 'no-store' })).json() as { online_enabled?: boolean; uplink_connected?: boolean };
+    return !!(s.online_enabled && s.uplink_connected);
+  } catch { return false; }
+}
+// ON: the shared live ESP32 tape if it is streaming, otherwise an ESP32 plugged into this computer (Web Serial).
 trng.onchange = async () => {
   if (trng.checked) {
-    if (webSerialSupported()) await connectEsp32(); else useOnline();
+    if (await onlineLive()) useOnline();
+    else if (webSerialSupported()) await connectEsp32();
+    else useOnline(); // shows "online mode is off" / "uplink down" honestly
   } else {
     await useDemo();
   }
   syncTrngSwitch(); // a cancelled port picker leaves the tape in demo mode, so the switch flips back off
 };
 setInterval(syncTrngSwitch, 1000);
+// Tell visitors when the real chip is live (one request per page load).
+void onlineLive().then(live => {
+  if (live && mode === 'demo') renderFeed('demo', 'The real ESP32 hardware tape is streaming right now: flip TRNG on to watch it live.');
+});
 $('btnOnline').onclick = () => { useOnline(); syncTrngSwitch(); };
 $('btnBridge').onclick = () => shareOnline();
 $('btnProof').onclick = () => {

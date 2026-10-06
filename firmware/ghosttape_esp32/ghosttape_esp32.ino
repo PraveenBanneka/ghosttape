@@ -2,10 +2,10 @@
 //
 // Streams hardware random numbers over USB serial, one packet per price sub-step.
 // Packet format (text, one per line, 115200 baud):
-//   GT1,<seq>,<a_hex>,<b_hex>,<c_hex>
+//   GT1,<seq>,<a_hex>,<b_hex>,<c_hex>            (or GT1S,...,<hmac8> when secrets.h is present)
 //     seq    : packet counter, starts at 0 on every boot
 //     a, b   : two uint32 used by Box-Muller for one Gaussian price step
-//     c      : one uint32 used for the regime roll at the end of each candle
+//     c      : one uint32 (unused by the current model; never reused for anything else)
 // Status lines (not packets; parsers that only accept 5-field packets ignore them):
 //   GT1,HELLO                                        once on boot
 //   GT1,INFO,radio=on,ps=none,aps=<n>,up=<s>         radio verified (boot, then every 30 s)
@@ -29,6 +29,29 @@
 
 #include <WiFi.h>
 #include <esp_wifi.h>
+#include "mbedtls/md.h"   // HMAC-SHA256, built into the ESP32 core
+
+// Signed packets (docs/RELAY_PROTOCOL.md 3.3): with a git-ignored secrets.h defining DEVICE_SECRET, every packet
+// is sent as  GT1S,<seq>,<a>,<b>,<c>,<hmac8>  where hmac8 = first 8 hex chars of HMAC-SHA256(DEVICE_SECRET,
+// "<seq>,<a>,<b>,<c>"). The Cloudflare relay holds the same key and rejects anything unsigned or forged.
+// Without secrets.h the board sends plain GT1 lines (USB-only use). The browser accepts both.
+#if __has_include("secrets.h")
+#include "secrets.h"
+#define SIGNED 1
+#else
+#define SIGNED 0
+#endif
+
+#if SIGNED
+static void hmac8(const char* msg, char out[9]) {
+  uint8_t mac[32];
+  const mbedtls_md_info_t* sha256 = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+  mbedtls_md_hmac(sha256, (const uint8_t*)DEVICE_SECRET, strlen(DEVICE_SECRET),
+                  (const uint8_t*)msg, strlen(msg), mac);
+  for (int i = 0; i < 4; i++) sprintf(out + 2 * i, "%02x", mac[i]);
+  out[8] = '\0';
+}
+#endif
 
 // Build flags. Defaults = the live tape. Capture builds set them on the command line instead of
 // editing this file, e.g. arduino-cli compile ... --build-property "compiler.cpp.extra_flags=-DCAPTURE_MODE=1"
@@ -136,8 +159,17 @@ void loop() {
   uint32_t a = esp_random();
   uint32_t b = esp_random();
   uint32_t c = esp_random();
-  Serial.printf("GT1,%lu,%08lx,%08lx,%08lx\n",
-                (unsigned long)seq++, (unsigned long)a, (unsigned long)b, (unsigned long)c);
+  char msg[48];
+  snprintf(msg, sizeof msg, "%lu,%08lx,%08lx,%08lx",
+           (unsigned long)seq, (unsigned long)a, (unsigned long)b, (unsigned long)c);
+#if SIGNED
+  char mac[9];
+  hmac8(msg, mac);
+  Serial.printf("GT1S,%s,%s\n", msg, mac);
+#else
+  Serial.printf("GT1,%s\n", msg);
+#endif
+  seq++;
   delay(PACKET_MS);
 #endif
 }
